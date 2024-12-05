@@ -14,7 +14,8 @@ module.exports = function(api) {
             "@utils": "./src/utils",
             "@hooks": "./src/hooks",
             "@types": "./src/types",
-            "@assets": "./assets"
+            "@assets": "./assets",
+            "@services": "./src/services"
           }
         }
       ],
@@ -22,4 +23,3 @@ module.exports = function(api) {
     ]
   };
 };
-
