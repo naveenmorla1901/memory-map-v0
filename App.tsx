@@ -14,7 +14,6 @@ import SignUpScreen from './src/screens/auth/SignUpScreen';
 import MapScreen from './src/screens/main/MapScreen';
 import SavedScreen from './src/screens/main/SavedScreen';
 import ProfileScreen from './src/screens/main/ProfileScreen';
-import InstagramScreen from './src/screens/main/InstagramScreen';
 import AddLocationScreen from './src/screens/main/AddLocationScreen';
 
 const Stack = createNativeStackNavigator();
@@ -35,8 +34,6 @@ function MainTabs() {
             iconName = focused ? 'map' : 'map-outline';
           } else if (route.name === 'Saved') {
             iconName = focused ? 'bookmark' : 'bookmark-outline';
-          } else if (route.name === 'Instagram') {
-            iconName = focused ? 'logo-instagram' : 'logo-instagram';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -47,7 +44,6 @@ function MainTabs() {
     >
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Saved" component={SavedScreen} />
-      <Tab.Screen name="Instagram" component={InstagramScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

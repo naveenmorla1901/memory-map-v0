@@ -5,10 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+  
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -18,13 +15,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourcompany.memorymap"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
     }
   }
 }

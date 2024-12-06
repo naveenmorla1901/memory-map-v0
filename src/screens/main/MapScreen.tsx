@@ -1,13 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Reanimated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { LocationService } from '../../services/LocationService';
 
-const MapScreen = ({ navigation }: { navigation: any }) => {
+export default function MapScreen({ navigation }: { navigation: any }) {
   const webViewRef = useRef<WebView>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentLocation, setCurrentLocation] = useState<{ name: string; latitude: number; longitude: number } | null>(null);
   const searchBarHeight = useSharedValue(0);
 
   const searchBarStyle = useAnimatedStyle(() => {
@@ -17,7 +19,7 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
     };
   });
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (webViewRef.current) {
       webViewRef.current.injectJavaScript(`
         var geocoder = L.Control.Geocoder.nominatim();
@@ -31,6 +33,12 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
                 html: '<div class="pin"></div><div class="pulse"></div>'
               })
             }).addTo(map).bindPopup(r.name).openPopup();
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'location',
+              name: r.name,
+              latitude: r.center.lat,
+              longitude: r.center.lng
+            }));
           }
         });
       `);
@@ -39,6 +47,29 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
 
   const toggleSearchBar = () => {
     searchBarHeight.value = searchBarHeight.value === 0 ? 50 : 0;
+  };
+
+  const handleMessage = (event: any) => {
+    const data = JSON.parse(event.nativeEvent.data);
+    if (data.type === 'location') {
+      setCurrentLocation({
+        name: data.name,
+        latitude: data.latitude,
+        longitude: data.longitude
+      });
+    }
+  };
+
+  const saveLocation = async () => {
+    if (currentLocation) {
+      try {
+        await LocationService.saveLocation(currentLocation);
+        Alert.alert('Success', 'Location saved successfully!');
+      } catch (error) {
+        console.error('Error saving location:', error);
+        Alert.alert('Error', 'Failed to save location. Please try again.');
+      }
+    }
   };
 
   const htmlContent = `
@@ -50,9 +81,12 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
         <style>
-          body { margin: 0; padding: 0; }
-          #map { width: 100%; height: 100vh; }
-          .custom-pin { width: 30px; height: 30px; }
+          body { padding: 0; margin: 0; }
+          #map { height: 100vh; width: 100%; }
+          .custom-pin {
+            width: 30px;
+            height: 30px;
+          }
           .pin {
             width: 30px;
             height: 30px;
@@ -62,46 +96,59 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
             transform: rotate(-45deg);
             left: 50%;
             top: 50%;
-            margin: -15px 0 0 -15px;
+            margin: -20px 0 0 -20px;
             animation-name: bounce;
+            animation-fill-mode: both;
             animation-duration: 1s;
-            animation-iteration-count: infinite;
           }
           .pulse {
-            background: rgba(255, 75, 85, 0.3);
+            background: rgba(255, 75, 85, 0.4);
             border-radius: 50%;
             height: 14px;
             width: 14px;
             position: absolute;
             left: 50%;
             top: 50%;
-            margin: -7px 0 0 -7px;
+            margin: 11px 0px 0px -12px;
             transform: rotateX(55deg);
             z-index: -2;
           }
+          .pulse:after {
+            content: "";
+            border-radius: 50%;
+            height: 40px;
+            width: 40px;
+            position: absolute;
+            margin: -13px 0 0 -13px;
+            animation: pulsate 1s ease-out;
+            animation-iteration-count: infinite;
+            opacity: 0;
+            box-shadow: 0 0 1px 2px #FF4B55;
+            animation: pulsate 1s ease-out;
+            animation-iteration-count: infinite;
+            opacity: 0;
+            box-shadow: 0 0 1px 2px #FF4B55;
+          }
+          @keyframes pulsate {
+            0% {transform: scale(0.1, 0.1); opacity: 0;}
+            50% {opacity: 1;}
+            100% {transform: scale(1.2, 1.2); opacity: 0;}
+          }
           @keyframes bounce {
-            0% { transform: rotate(-45deg) translate(0, 0); }
-            50% { transform: rotate(-45deg) translate(0, -10px); }
-            100% { transform: rotate(-45deg) translate(0, 0); }
+            0% {opacity: 0; transform: translateY(-2000px) rotate(-45deg);}
+            60% {opacity: 1; transform: translateY(30px) rotate(-45deg);}
+            80% {transform: translateY(-10px) rotate(-45deg);}
+            100% {transform: translateY(0) rotate(-45deg);}
           }
         </style>
       </head>
       <body>
         <div id="map"></div>
         <script>
-          var map = L.map('map').setView([0, 0], 2);
+          var map = L.map('map').setView([51.505, -0.09], 13);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: 'OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           }).addTo(map);
-
-          if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-              var lat = position.coords.latitude;
-              var lon = position.coords.longitude;
-              map.setView([lat, lon], 13);
-            });
-          }
         </script>
       </body>
     </html>
@@ -109,79 +156,103 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.searchButton} onPress={toggleSearchBar}>
-        <Ionicons name="search" size={24} color="#FF4B55" />
-      </TouchableOpacity>
-      
-      <Animated.View style={[styles.searchBar, searchBarStyle]}>
+      <Reanimated.View style={[styles.searchContainer, searchBarStyle]}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search location..."
+          placeholder="Search for a location"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onSubmitEditing={handleSearch}
         />
-      </Animated.View>
-
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Ionicons name="search" size={24} color="#fff" />
+        </TouchableOpacity>
+      </Reanimated.View>
       <WebView
         ref={webViewRef}
         source={{ html: htmlContent }}
-        style={styles.webview}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        geolocationEnabled={true}
+        style={styles.map}
+        onMessage={handleMessage}
       />
+      <TouchableOpacity 
+        style={styles.addButton} 
+        onPress={() => navigation.navigate('AddLocation')}
+      >
+        <Ionicons name="add" size={24} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.searchToggle} 
+        onPress={toggleSearchBar}
+      >
+        <Ionicons name="search" size={24} color="#fff" />
+      </TouchableOpacity>
+      {currentLocation && (
+        <TouchableOpacity 
+          style={styles.saveButton} 
+          onPress={saveLocation}
+        >
+          <Ionicons name="bookmark" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  webview: {
+  searchContainer: {
+    flexDirection: 'row',
+    padding: 10,
+    backgroundColor: '#fff',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1,
+  },
+  searchInput: {
     flex: 1,
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
   },
   searchButton: {
+    marginLeft: 10,
+    backgroundColor: '#FF4B55',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 40,
+    borderRadius: 5,
+  },
+  map: {
+    flex: 1,
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#FF4B55',
+    padding: 15,
+    borderRadius: 30,
+  },
+  searchToggle: {
     position: 'absolute',
     top: 20,
     right: 20,
-    zIndex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#FF4B55',
     padding: 10,
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    borderRadius: 20,
   },
-  searchBar: {
+  saveButton: {
     position: 'absolute',
-    top: 20,
+    bottom: 20,
     left: 20,
-    right: 70,
-    zIndex: 1,
-    backgroundColor: 'white',
-    borderRadius: 25,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
-  },
-  searchInput: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    fontSize: 16,
+    backgroundColor: '#FF4B55',
+    padding: 15,
+    borderRadius: 30,
   },
 });
 
-export default MapScreen;
