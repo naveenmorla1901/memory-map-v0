@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+//src/screens/main/ProfileScreens.tsx
+import React, { useState, useContext } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../utils/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
+import { ThemeContext } from '../../contexts/ThemeContext';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
-  const [isDarkModeEnabled, setIsDarkModeEnabled] = useState(false);
+  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
 
   const handleSignOut = async () => {
     try {
@@ -22,22 +24,22 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     <View style={styles.infoItem}>
       <Ionicons name={icon as any} size={24} color="#FF4B55" style={styles.infoIcon} />
       <View style={styles.infoTextContainer}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value}</Text>
+        <Text style={[styles.infoLabel, isDarkMode && styles.darkText]}>{label}</Text>
+        <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>{value}</Text>
       </View>
       <Ionicons name="chevron-forward" size={24} color="#ccc" />
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
       <ScrollView>
         <View style={styles.header}>
           <Image
             source={{ uri: 'https://via.placeholder.com/150' }}
             style={styles.profileImage}
           />
-          <Text style={styles.name}>Anna Avetisyan</Text>
+          <Text style={[styles.name, isDarkMode && styles.darkText]}>Anna Avetisyan</Text>
           <TouchableOpacity style={styles.editButton}>
             <Text style={styles.editButtonText}>Edit Profile</Text>
           </TouchableOpacity>
@@ -51,7 +53,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         </View>
         <View style={styles.settingsContainer}>
           <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Enable Notifications</Text>
+            <Text style={[styles.settingLabel, isDarkMode && styles.darkText]}>Enable Notifications</Text>
             <Switch
               value={isNotificationsEnabled}
               onValueChange={setIsNotificationsEnabled}
@@ -60,12 +62,12 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             />
           </View>
           <View style={styles.settingItem}>
-            <Text style={styles.settingLabel}>Dark Mode</Text>
+            <Text style={[styles.settingLabel, isDarkMode && styles.darkText]}>Dark Mode</Text>
             <Switch
-              value={isDarkModeEnabled}
-              onValueChange={setIsDarkModeEnabled}
+              value={isDarkMode}
+              onValueChange={toggleTheme}
               trackColor={{ false: "#767577", true: "#FF4B55" }}
-              thumbColor={isDarkModeEnabled ? "#f4f3f4" : "#f4f3f4"}
+              thumbColor={isDarkMode ? "#f4f3f4" : "#f4f3f4"}
             />
           </View>
         </View>
@@ -82,6 +84,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  darkContainer: {
+    backgroundColor: '#1a1a1a',
+  },
   header: {
     alignItems: 'center',
     padding: 20,
@@ -96,6 +101,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
+  },
+  darkText: {
+    color: '#fff',
   },
   editButton: {
     backgroundColor: '#FF4B55',

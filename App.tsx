@@ -1,6 +1,7 @@
+//App.tsx
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -15,10 +16,12 @@ import MapScreen from './src/screens/main/MapScreen';
 import SavedScreen from './src/screens/main/SavedScreen';
 import ProfileScreen from './src/screens/main/ProfileScreen';
 import AddLocationScreen from './src/screens/main/AddLocationScreen';
+import { initializeDatabase } from './src/services/database/schema';
+import { ThemeProvider } from './src/contexts/ThemeContext';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const MainStack = createNativeStackNavigator();
+const MainStack = createStackNavigator();
 
 function MainTabs() {
   return (
@@ -38,7 +41,7 @@ function MainTabs() {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
         },
       })}
     >
@@ -68,12 +71,21 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
-      setIsLoading(false);
-    });
+    const initApp = async () => {
+      try {
+        await initializeDatabase();
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          setIsAuthenticated(!!user);
+          setIsLoading(false);
+        });
+        return unsubscribe;
+      } catch (error) {
+        console.error('Error initializing app:', error);
+        setIsLoading(false);
+      }
+    };
 
-    return () => unsubscribe();
+    initApp();
   }, []);
 
   if (isLoading) {
@@ -81,26 +93,28 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="auto" />
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
-          }}
-        >
-          {isAuthenticated ? (
-            <Stack.Screen name="Main" component={MainStackScreen} />
-          ) : (
-            <>
-              <Stack.Screen name="SignIn" component={SignInScreen} />
-              <Stack.Screen name="SignUp" component={SignUpScreen} />
-            </>
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="auto" />
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
+            }}
+          >
+            {isAuthenticated ? (
+              <Stack.Screen name="Main" component={MainStackScreen} />
+            ) : (
+              <>
+                <Stack.Screen name="SignIn" component={SignInScreen} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} />
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
 

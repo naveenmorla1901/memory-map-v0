@@ -1,3 +1,4 @@
+//src/screens/auth/SignUpScreen.tsx
 import React, { useState } from 'react';
 import {
   View,

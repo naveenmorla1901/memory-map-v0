@@ -1,5 +1,5 @@
+//src/services/database/schema.ts
 import * as SQLite from 'expo-sqlite';
-
 export const initializeDatabase = async () => {
   const db = SQLite.openDatabase('memorymap.db');
 

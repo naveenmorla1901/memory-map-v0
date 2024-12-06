@@ -1,3 +1,4 @@
+//src/services/database/sync.ts
 import { openDatabase } from 'expo-sqlite';
 import { initializeApp } from 'firebase/app';
 import { 
