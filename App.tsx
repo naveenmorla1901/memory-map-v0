@@ -8,7 +8,6 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './src/utils/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
-import { CardStyleInterpolators } from '@react-navigation/stack';
 
 import SignInScreen from './src/screens/auth/SignInScreen';
 import SignUpScreen from './src/screens/auth/SignUpScreen';
@@ -31,7 +30,7 @@ function MainTabs() {
         tabBarActiveTintColor: '#FF4B55',
         tabBarInactiveTintColor: 'gray',
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
+          let iconName: 'map' | 'map-outline' | 'bookmark' | 'bookmark-outline' | 'person' | 'person-outline';
 
           if (route.name === 'Map') {
             iconName = focused ? 'map' : 'map-outline';
@@ -39,6 +38,8 @@ function MainTabs() {
             iconName = focused ? 'bookmark' : 'bookmark-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          } else {
+            iconName = 'map'; // Provide a default value
           }
 
           return <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
@@ -57,7 +58,6 @@ function MainStackScreen() {
     <MainStack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
       }}
     >
       <MainStack.Screen name="MainTabs" component={MainTabs} />
@@ -93,28 +93,25 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <StatusBar style="auto" />
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-              cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
-            }}
-          >
-            {isAuthenticated ? (
-              <Stack.Screen name="Main" component={MainStackScreen} />
-            ) : (
-              <>
-                <Stack.Screen name="SignIn" component={SignInScreen} />
-                <Stack.Screen name="SignUp" component={SignUpScreen} />
-              </>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </SafeAreaProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <NavigationContainer>
+        <StatusBar style="auto" />
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
+          }}
+        >
+          {isAuthenticated ? (
+            <Stack.Screen name="Main" component={MainStackScreen} />
+          ) : (
+            <>
+              <Stack.Screen name="SignIn" component={SignInScreen} />
+              <Stack.Screen name="SignUp" component={SignUpScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
-
