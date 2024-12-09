@@ -1,5 +1,5 @@
-//src/screens/auth/SignInScreen.tsx
-import React, { useState } from 'react';
+// src/screens/auth/SignInScreen.tsx
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,14 +13,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../utils/firebaseConfig';
 
-export default function SignInScreen({ navigation }: { navigation: any }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function SignInScreen({ route, navigation }: { route: any; navigation: any }) {
+  const [email, setEmail] = useState('t@gmail.com');
+  const [password, setPassword] = useState('t@gmail.com');
+  const autoLogin = route.params?.autoLogin;
+
+  useEffect(() => {
+    if (autoLogin) {
+      handleSignIn();
+    }
+  }, []);
 
   const handleSignIn = async () => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigation.navigate('Main');
+      navigation.replace('MainTabs');
     } catch (error) {
       Alert.alert('Error', 'Failed to sign in. Please check your credentials.');
     }
@@ -60,17 +67,6 @@ export default function SignInScreen({ navigation }: { navigation: any }) {
             <Text style={styles.buttonText}>Sign in</Text>
           </TouchableOpacity>
 
-          <Text style={styles.orText}>or use one of your social profiles</Text>
-
-          <View style={styles.socialButtons}>
-            <TouchableOpacity style={[styles.socialButton, styles.twitterButton]}>
-              <Text style={styles.socialButtonText}>Twitter</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
-              <Text style={styles.socialButtonText}>Facebook</Text>
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.footer}>
             <TouchableOpacity>
               <Text style={styles.forgotPassword}>Forgot Password?</Text>
@@ -84,6 +80,8 @@ export default function SignInScreen({ navigation }: { navigation: any }) {
     </SafeAreaView>
   );
 }
+
+// ... rest of your styles remain the same
 
 const styles = StyleSheet.create({
   container: {

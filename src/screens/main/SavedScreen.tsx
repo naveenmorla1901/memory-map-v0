@@ -8,6 +8,7 @@ import { Location as LocationType } from '../../types/location';
 import SearchBar from '../../components/SearchBar';
 import LocationField from '../../components/LocationField';
 import * as ExpoLocation from 'expo-location';
+import { testBackendConnection } from '../../services/testConnection';
 
 export default function SavedScreen() {
   const [savedLocations, setSavedLocations] = useState<LocationType[]>([]);
@@ -143,13 +144,41 @@ export default function SavedScreen() {
     </TouchableOpacity>
   );
 
+  const testConnection = async () => {
+    try {
+      const isConnected = await testBackendConnection();
+      Alert.alert(
+        'Backend Connection Test',
+        isConnected 
+          ? 'Connection successful!' 
+          : 'Connection failed. Check console for details.'
+      );
+    } catch (error) {
+      Alert.alert(
+        'Connection Error', 
+        'Failed to test connection. Please check your network connection and backend URL.'
+      );
+      console.error('Connection test error:', error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Saved Locations</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="filter" size={24} color="#FF4B55" />
-        </TouchableOpacity>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Saved Locations</Text>
+        </View>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.testButton} 
+            onPress={testConnection}
+          >
+            <Text style={styles.testButtonText}>Test Backend</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.filterButton}>
+            <Ionicons name="filter" size={24} color="#FF4B55" />
+          </TouchableOpacity>
+        </View>
       </View>
       <SearchBar 
         onSearch={handleSearch} 
@@ -201,10 +230,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  titleContainer: {
+    flex: 1,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   filterButton: {
@@ -294,6 +328,22 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  testButton: {
+    backgroundColor: '#FF4B55',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 5,
+  },
+  testButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
