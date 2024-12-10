@@ -1,25 +1,46 @@
 {
   "expo": {
     "name": "MemoryMap",
-    "slug": "memory-map",
+    "slug": "memorymap",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-  
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.memorymap"
+      "bundleIdentifier": "com.yourcompany.memorymap",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "newArchEnabled": true,
+      "userInterfaceStyle": "automatic"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yourcompany.memorymap"
+      "package": "com.yourcompany.memorymap",
+      "googleServicesFile": "./google-services.json",
+      "newArchEnabled": true,
+      "userInterfaceStyle": "automatic"
     },
     "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "memory-map-78ad6"
+      }
     }
   }
 }

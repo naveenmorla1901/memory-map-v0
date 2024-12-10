@@ -1,88 +1,83 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-apply plugin: 'maven-publish'
 
 group = 'host.exp.exponent'
-version = '11.1.1'
+version = '15.0.3'
 
-buildscript {
-  def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
-  if (expoModulesCorePlugin.exists()) {
-    apply from: expoModulesCorePlugin
-    applyKotlinExpoModulesCorePlugin()
-  }
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useDefaultAndroidSdkVersions()
+useExpoPublishing()
 
-  // Simple helper that allows the root project to override versions declared by this library.
-  ext.safeExtGet = { prop, fallback ->
-    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+String toPlatformIndependentPath(File path) {
+  def result = path.toString()
+  if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+    result = result.replace(File.separatorChar, '/' as char)
   }
-
-  // Ensures backward compatibility
-  ext.getKotlinVersion = {
-    if (ext.has("kotlinVersion")) {
-      ext.kotlinVersion()
-    } else {
-      ext.safeExtGet("kotlinVersion", "1.8.10")
-    }
-  }
-
-  repositories {
-    mavenCentral()
-  }
-
-  dependencies {
-    classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${getKotlinVersion()}")
-  }
+  return result
 }
 
-// Creating sources with comments
-task androidSourcesJar(type: Jar) {
-  classifier = 'sources'
-  from android.sourceSets.main.java.srcDirs
+ext {
+  USE_SQLCIPHER = findProperty('expo.sqlite.useSQLCipher') == 'true'
+}
+def SQLITE3_SRC_DIR = new File("${projectDir}/../vendor/sqlite3")
+if (ext.USE_SQLCIPHER) {
+  SQLITE3_SRC_DIR = new File("${projectDir}/../vendor/sqlcipher")
 }
 
-afterEvaluate {
-  publishing {
-    publications {
-      release(MavenPublication) {
-        from components.release
-        // Add additional sourcesJar to artifacts
-        artifact(androidSourcesJar)
-      }
-    }
-    repositories {
-      maven {
-        url = mavenLocal().url
-      }
-    }
+def getSQLiteBuildFlags() {
+  def buildFlags = '-DSQLITE_ENABLE_BYTECODE_VTAB=1 -DSQLITE_TEMP_STORE=2'
+  if (findProperty('expo.sqlite.enableFTS') != 'false') {
+    buildFlags <<= ' -DSQLITE_ENABLE_FTS4=1 -DSQLITE_ENABLE_FTS3_PARENTHESIS=1 -DSQLITE_ENABLE_FTS5=1'
   }
+  if (ext.USE_SQLCIPHER) {
+    buildFlags <<= ' -DSQLITE_HAS_CODEC=1 -DSQLCIPHER_CRYPTO_OPENSSL'
+  }
+  def customBuildFlags = findProperty('expo.sqlite.customBuildFlags') ?: ''
+  if (customBuildFlags != '') {
+    buildFlags <<= " ${customBuildFlags}"
+  }
+  logger.info("SQLite build flags: ${buildFlags}")
+  return buildFlags
+}
+
+def reactNativeArchitectures() {
+  def value = project.getProperties().get("reactNativeArchitectures")
+  return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
 }
 
 android {
-  compileSdkVersion safeExtGet("compileSdkVersion", 33)
-
-  compileOptions {
-    sourceCompatibility JavaVersion.VERSION_11
-    targetCompatibility JavaVersion.VERSION_11
-  }
-
-  kotlinOptions {
-    jvmTarget = JavaVersion.VERSION_11.majorVersion
-  }
-
+  namespace "expo.modules.sqlite"
   defaultConfig {
-    minSdkVersion safeExtGet("minSdkVersion", 21)
-    targetSdkVersion safeExtGet("targetSdkVersion", 33)
     versionCode 18
-    versionName "11.1.1"
+    versionName "15.0.3"
+
+    externalNativeBuild {
+      cmake {
+        abiFilters (*reactNativeArchitectures())
+        arguments "-DANDROID_STL=c++_shared",
+          "-DSQLITE3_SRC_DIR=${toPlatformIndependentPath(SQLITE3_SRC_DIR)}",
+          "-DSQLITE_BUILDFLAGS=${getSQLiteBuildFlags()}",
+          "-DUSE_SQLCIPHER=${project.ext.USE_SQLCIPHER}"
+      }
+    }
   }
-  lintOptions {
-    abortOnError false
+  externalNativeBuild {
+    cmake {
+      path "CMakeLists.txt"
+    }
+  }
+  buildFeatures {
+    prefab true
   }
 }
 
 dependencies {
-  implementation project(':expo-modules-core')
-
-  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${getKotlinVersion()}"
+  if (project.ext.USE_SQLCIPHER) {
+    compileOnly 'com.android.ndk.thirdparty:openssl:1.1.1q-beta-1'
+  }
+  compileOnly 'com.facebook.fbjni:fbjni:0.3.0'
 }

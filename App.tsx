@@ -5,65 +5,102 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { auth } from './src/utils/firebaseConfig';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import SignInScreen from './src/screens/auth/SignInScreen';
-import SignUpScreen from './src/screens/auth/SignUpScreen';
-import MapScreen from './src/screens/main/MapScreen';
-import SavedScreen from './src/screens/main/SavedScreen';
-import ProfileScreen from './src/screens/main/ProfileScreen';
 
-const Stack = createStackNavigator();
-const Tab = createBottomTabNavigator();
+// Import screens with explicit default imports
+import SignInScreen from '@screens/auth/SignInScreen';
+import SignUpScreen from '@screens/auth/SignUpScreen';
+import MapScreen from '@screens/main/MapScreen';
+import SavedScreen from '@screens/main/SavedScreen';
+import ProfileScreen from '@screens/main/ProfileScreen';
+
+// Import services
+import { LocationService } from './src/services/LocationService';
+
+// Ensure Firebase is initialized
+import '@utils/firebaseConfig';
+
+type RootStackParamList = {
+  SignIn: undefined;
+  SignUp: undefined;
+  MainTabs: undefined;
+};
+
+type MainTabParamList = {
+  Map: undefined;
+  Saved: undefined;
+  Profile: undefined;
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function MainTabs() {
   return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          if (route.name === 'Map') {
-            iconName = focused ? 'map' : 'map-outline';
-          } else if (route.name === 'Saved') {
-            iconName = focused ? 'bookmark' : 'bookmark-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-          return <Ionicons name={iconName as any} size={size} color={color} />;
-        },
-      })}
-    >
-      <Tab.Screen name="Map" component={MapScreen} />
-      <Tab.Screen name="Saved" component={SavedScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+    <Tab.Navigator screenOptions={{ headerShown: false }}>
+      <Tab.Screen 
+        name="Map" 
+        component={MapScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Saved" 
+        component={SavedScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bookmark" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen} 
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" color={color} size={size} />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
-    // Check internet connection
-    const unsubscribeNet = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected || false);
-      console.log('Connection status:', state);
+    // Initialize database
+    try {
+      LocationService.initializeDatabase();
+    } catch (error) {
+      console.error('Database initialization error:', error);
+      Alert.alert('Database Error', 'Failed to initialize database');
+    }
+
+    // Check network connection
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setIsConnected(state.isInternetReachable || false);
     });
 
-    // Auth listener
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    // Set up auth state listener
+    const unsubscribeAuth = auth().onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
       setIsLoading(false);
     });
 
+    // Cleanup subscriptions
     return () => {
-      unsubscribeNet();
+      unsubscribe();
       unsubscribeAuth();
     };
   }, []);
@@ -84,6 +121,7 @@ export default function App() {
       </View>
     );
   }
+
   return (
     <SafeAreaProvider>
       <NavigationContainer>

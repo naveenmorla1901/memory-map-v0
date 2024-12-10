@@ -9,10 +9,11 @@ module.exports = function(api) {
           root: ['./src'],
           extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
           alias: {
-            "@components": "./src/components",
             "@screens": "./src/screens",
+            "@services": "./src/services",
             "@utils": "./src/utils",
-            "@hooks": "./src/hooks",
+            "@components": "./src/components",
+            "@navigation": "./src/navigation",
             "@types": "./src/types",
             "@assets": "./assets"
           }
@@ -22,4 +23,3 @@ module.exports = function(api) {
     ]
   };
 };
-

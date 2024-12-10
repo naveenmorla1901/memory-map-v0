@@ -5,9 +5,16 @@ import App from './App';
 // Initialize Firebase and auth first
 import './src/utils/firebaseConfig';
 
-// Register both components
-AppRegistry.registerComponent('main', () => App);
-AppRegistry.registerComponent('auth', () => App);
+// Determine the app name
+const APP_NAME = 'memorymap';
 
-// Register root component for Expo
-registerRootComponent(App);
+try {
+  // Register components
+  AppRegistry.registerComponent(APP_NAME, () => App);
+  
+  // For Expo
+  registerRootComponent(App);
+} catch (error) {
+  console.error('Failed to register app components:', error);
+  throw error;
+}

@@ -1,208 +1,294 @@
 // src/screens/auth/SignUpScreen.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Image,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { authService } from '../../services/auth/authService';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function SignUpScreen({ navigation }: { navigation: any }) {
+// Use module alias for services
+import { authService } from '@services/auth/authService';
+
+interface SignUpScreenProps {
+  navigation: any;
+}
+
+const SignUpScreen: React.FC<SignUpScreenProps> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
+  const validateForm = (): boolean => {
+    if (!email || !password || !confirmPassword) {
+      setErrorMessage('Please fill in all fields');
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage('Passwords do not match');
+      return false;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters');
+      return false;
+    }
+
+    return true;
+  };
 
   const handleSignUp = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+    if (!validateForm()) return;
 
-    if (!agreedToTerms) {
-      Alert.alert('Error', 'Please agree to the Terms of Service');
-      return;
-    }
+    setIsLoading(true);
+    setErrorMessage('');
 
     try {
-      setIsLoading(true);
-      await authService.register(email, password);
-      navigation.replace('MainTabs');
+      const response = await authService.register(email, password);
+      
+      if (!response.success) {
+        setErrorMessage(response.error || 'Registration failed');
+        setIsLoading(false);
+        return;
+      }
+
+      // Navigation will be handled by auth state listener in App.tsx
     } catch (error: any) {
-      Alert.alert(
-        'Registration Failed',
-        error.message || 'Unable to create account. Please try again.'
-      );
-    } finally {
+      setErrorMessage(error.message || 'Registration failed');
       setIsLoading(false);
     }
   };
 
+  const navigateToSignIn = () => {
+    navigation.navigate('SignIn');
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Create Account</Text>
-        <Text style={styles.subtitle}>Start your memory map journey</Text>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Your email address"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            editable={!isLoading}
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Choose a password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!isLoading}
-          />
-
-          <TouchableOpacity
-            style={styles.checkbox}
-            onPress={() => setAgreedToTerms(!agreedToTerms)}
-            disabled={isLoading}
-          >
-            <View
-              style={[
-                styles.checkboxBox,
-                agreedToTerms && styles.checkboxChecked,
-              ]}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.container}
+        >
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('@assets/logo.png')} 
+              style={styles.logo} 
+              resizeMode="contain" 
             />
-            <Text style={styles.checkboxText}>
-              I agree to the{' '}
-              <Text style={styles.link}>Terms of Service</Text> and{' '}
-              <Text style={styles.link}>Privacy Policy</Text>
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.button,
-              (!agreedToTerms || isLoading) && styles.buttonDisabled,
-            ]}
-            onPress={handleSignUp}
-            disabled={!agreedToTerms || isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Create Account</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-              <Text style={styles.link}>Sign In</Text>
-            </TouchableOpacity>
           </View>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
-}
 
-// Keep existing styles
+          <View style={styles.formContainer}>
+            <Text style={styles.title}>Sign Up</Text>
+
+            {errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+
+            <View style={styles.inputContainer}>
+              <Ionicons 
+                name="mail" 
+                size={20} 
+                color="#666" 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                placeholder="Email"
+                placeholderTextColor="#666"
+                style={styles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons 
+                name="lock-closed" 
+                size={20} 
+                color="#666" 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                placeholder="Password"
+                placeholderTextColor="#666"
+                style={styles.input}
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.showPasswordButton}
+              >
+                <Ionicons 
+                  name={showPassword ? "eye-off" : "eye"} 
+                  size={20} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Ionicons 
+                name="lock-closed" 
+                size={20} 
+                color="#666" 
+                style={styles.inputIcon} 
+              />
+              <TextInput
+                placeholder="Confirm Password"
+                placeholderTextColor="#666"
+                style={styles.input}
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+              <TouchableOpacity 
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.showPasswordButton}
+              >
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-off" : "eye"} 
+                  size={20} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.signUpButton}
+              onPress={handleSignUp}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.signUpButtonText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.signInContainer}>
+              <Text style={styles.signInText}>Already have an account? </Text>
+              <TouchableOpacity onPress={navigateToSignIn}>
+                <Text style={styles.signInLinkText}>Sign In</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  logoContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+  },
+  formContainer: {
+    paddingHorizontal: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 32,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  form: {
-    width: '100%',
-  },
-  label: {
-    fontSize: 14,
-    color: '#FF4B55',
     marginBottom: 8,
   },
-  input: {
-    width: '100%',
-    height: 48,
+  errorText: {
+    color: '#FF4B55',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 12,
+    paddingHorizontal: 12,
   },
-  checkbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  checkboxBox: {
-    width: 20,
-    height: 20,
-    borderWidth: 1,
-    borderColor: '#FF4B55',
-    borderRadius: 4,
+  inputIcon: {
     marginRight: 8,
   },
-  checkboxChecked: {
-    backgroundColor: '#FF4B55',
-  },
-  checkboxText: {
+  input: {
     flex: 1,
-    fontSize: 14,
-    color: '#666',
-  },
-  button: {
-    width: '100%',
     height: 48,
+    fontSize: 16,
+  },
+  showPasswordButton: {
+    padding: 4,
+  },
+  signUpButton: {
     backgroundColor: '#FF4B55',
+    height: 48,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
+    marginTop: 16,
   },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
+  signUpButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  footer: {
+  signInContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 32,
   },
-  footerText: {
+  signInText: {
     color: '#666',
+    fontSize: 14,
   },
-  link: {
+  signInLinkText: {
     color: '#FF4B55',
-    fontWeight: '500',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
+export default SignUpScreen;

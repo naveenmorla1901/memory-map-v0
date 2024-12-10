@@ -1,5 +1,5 @@
 //src/services/database/sync.ts
-import { openDatabase } from 'expo-sqlite';
+import { openDatabaseSync } from 'expo-sqlite';
 import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
@@ -45,7 +45,7 @@ export class SyncService {
   }
 
   private async initializeDatabase() {
-    this.db = openDatabase('memorymap.db');
+    this.db = openDatabaseSync('memorymap.db');
     this.isInitialized = true;
   }
 
@@ -86,24 +86,21 @@ export class SyncService {
 
   private async getPendingSyncItems(): Promise<SyncQueueItem[]> {
     await this.ensureInitialized();
-    return new Promise<SyncQueueItem[]>((resolve, reject) => {
-      this.db.transaction(
-        (tx: SQLTransaction) => {
-          tx.executeSql(
-            'SELECT * FROM sync_queue WHERE status = ? ORDER BY created_at ASC',
-            ['pending'],
-            (_: SQLTransaction, resultSet: SQLResultSet) => {
-              resolve(resultSet.rows._array as SyncQueueItem[]);
-            },
-            (_: SQLTransaction, error: Error) => {
-              reject(error);
-              return false;
-            }
-          );
-        },
-        (error: Error) => reject(error)
-      );
-    });
+    const result = JSON.parse(
+      this.db.execSync(
+        'SELECT json_group_array(json_object(' +
+        "'id', id, " +
+        "'entity_type', entity_type, " +
+        "'entity_id', entity_id, " +
+        "'operation', operation, " +
+        "'data', data, " +
+        "'created_at', created_at, " +
+        "'attempts', attempts, " +
+        "'status', status" +
+        ')) FROM sync_queue WHERE status = "pending" ORDER BY created_at ASC LIMIT 10'
+      )
+    );
+    return result;
   }
 
   private async handleCreate(item: SyncQueueItem) {
@@ -214,34 +211,16 @@ export class SyncService {
 
   private async markSyncComplete(id: string) {
     await this.ensureInitialized();
-    await new Promise<void>((resolve, reject) => {
-      this.db.transaction(
-        (tx: SQLTransaction) => {
-          tx.executeSql(
-            'UPDATE sync_queue SET status = ? WHERE id = ?',
-            ['completed', id]
-          );
-        },
-        (error: Error) => reject(error),
-        () => resolve()
-      );
-    });
+    this.db.execSync(
+      `UPDATE sync_queue SET status = 'completed' WHERE id = '${id}'`
+    );
   }
 
   private async incrementSyncAttempt(id: string) {
     await this.ensureInitialized();
-    await new Promise<void>((resolve, reject) => {
-      this.db.transaction(
-        (tx: SQLTransaction) => {
-          tx.executeSql(
-            'UPDATE sync_queue SET attempts = attempts + 1 WHERE id = ?',
-            [id]
-          );
-        },
-        (error: Error) => reject(error),
-        () => resolve()
-      );
-    });
+    this.db.execSync(
+      `UPDATE sync_queue SET attempts = attempts + 1, status = 'failed' WHERE id = '${id}'`
+    );
   }
 }
 
