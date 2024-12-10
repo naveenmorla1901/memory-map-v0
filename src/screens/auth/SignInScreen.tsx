@@ -1,5 +1,6 @@
 // src/screens/auth/SignInScreen.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { FirebaseStatus } from '../../components/FirebaseStatus';
 import {
   View,
   Text,
@@ -8,28 +9,47 @@ import {
   StyleSheet,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../utils/firebaseConfig';
+import { authService } from '../../services/auth/authService';
 
-export default function SignInScreen({ route, navigation }: { route: any; navigation: any }) {
-  const [email, setEmail] = useState('t@gmail.com');
-  const [password, setPassword] = useState('t@gmail.com');
-  const autoLogin = route.params?.autoLogin;
-
-  useEffect(() => {
-    if (autoLogin) {
-      handleSignIn();
-    }
-  }, []);
+export default function SignInScreen({ navigation }: { navigation: any }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSignIn = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+  
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      setIsLoading(true);
+      console.log('Starting login process...');
+      await authService.login(email, password);
+      console.log('Login successful');
       navigation.replace('MainTabs');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to sign in. Please check your credentials.');
+    } catch (error: any) {
+      console.error('Login error details:', {
+        code: error.code,
+        message: error.message,
+        fullError: error
+      });
+      
+      Alert.alert(
+        'Login Failed',
+        `Error: ${error.message}\nCode: ${error.code}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => console.log('Alert closed')
+          }
+        ]
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -52,6 +72,7 @@ export default function SignInScreen({ route, navigation }: { route: any; naviga
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!isLoading}
           />
 
           <Text style={styles.label}>Password</Text>
@@ -61,16 +82,22 @@ export default function SignInScreen({ route, navigation }: { route: any; naviga
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            editable={!isLoading}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleSignIn}>
-            <Text style={styles.buttonText}>Sign in</Text>
+          <TouchableOpacity 
+            style={[styles.button, isLoading && styles.buttonDisabled]} 
+            onPress={handleSignIn}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Sign in</Text>
+            )}
           </TouchableOpacity>
-
+          <FirebaseStatus />
           <View style={styles.footer}>
-            <TouchableOpacity>
-              <Text style={styles.forgotPassword}>Forgot Password?</Text>
-            </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
               <Text style={styles.signUp}>Sign Up</Text>
             </TouchableOpacity>
@@ -78,10 +105,10 @@ export default function SignInScreen({ route, navigation }: { route: any; naviga
         </View>
       </View>
     </SafeAreaView>
+    
   );
 }
 
-// ... rest of your styles remain the same
 
 const styles = StyleSheet.create({
   container: {
@@ -126,13 +153,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   button: {
-    width: '100%',
-    height: 48,
-    backgroundColor: '#FF4B55',
-    borderRadius: 8,
-    justifyContent: 'center',
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 16,
+    marginTop: 20,
+  },
+  buttonDisabled: {
+    backgroundColor: '#cccccc',
   },
   buttonText: {
     color: '#fff',

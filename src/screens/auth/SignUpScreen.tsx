@@ -1,4 +1,4 @@
-//src/screens/auth/SignUpScreen.tsx
+// src/screens/auth/SignUpScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -7,34 +7,47 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../utils/firebaseConfig';
+import { authService } from '../../services/auth/authService';
 
 export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleSignUp = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
     if (!agreedToTerms) {
-      Alert.alert('Error', 'Please agree to the Terms of Service and Privacy Policy.');
+      Alert.alert('Error', 'Please agree to the Terms of Service');
       return;
     }
 
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      navigation.navigate('Main');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create an account. Please try again.');
+      setIsLoading(true);
+      await authService.register(email, password);
+      navigation.replace('MainTabs');
+    } catch (error: any) {
+      Alert.alert(
+        'Registration Failed',
+        error.message || 'Unable to create account. Please try again.'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Sign Up</Text>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Start your memory map journey</Text>
 
         <View style={styles.form}>
           <Text style={styles.label}>Email</Text>
@@ -45,20 +58,23 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!isLoading}
           />
 
           <Text style={styles.label}>Password</Text>
           <TextInput
             style={styles.input}
-            placeholder="Your password"
+            placeholder="Choose a password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            editable={!isLoading}
           />
 
           <TouchableOpacity
             style={styles.checkbox}
             onPress={() => setAgreedToTerms(!agreedToTerms)}
+            disabled={isLoading}
           >
             <View
               style={[
@@ -68,21 +84,28 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
             />
             <Text style={styles.checkboxText}>
               I agree to the{' '}
-              <Text style={styles.link}>Terms of Services</Text> and{' '}
+              <Text style={styles.link}>Terms of Service</Text> and{' '}
               <Text style={styles.link}>Privacy Policy</Text>
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.button, !agreedToTerms && styles.buttonDisabled]}
+            style={[
+              styles.button,
+              (!agreedToTerms || isLoading) && styles.buttonDisabled,
+            ]}
             onPress={handleSignUp}
-            disabled={!agreedToTerms}
+            disabled={!agreedToTerms || isLoading}
           >
-            <Text style={styles.buttonText}>Continue</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Create Account</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Have an Account? </Text>
+            <Text style={styles.footerText}>Already have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
               <Text style={styles.link}>Sign In</Text>
             </TouchableOpacity>
@@ -92,6 +115,8 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
     </SafeAreaView>
   );
 }
+
+// Keep existing styles
 
 const styles = StyleSheet.create({
   container: {
@@ -106,6 +131,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 32,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
   },
   form: {
     width: '100%',

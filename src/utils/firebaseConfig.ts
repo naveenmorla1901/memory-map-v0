@@ -1,7 +1,8 @@
-//src/utils/firebaseConfig.ts
+// src/utils/firebaseConfig.ts
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { Platform } from 'react-native';
 
 export const firebaseConfig = {
   apiKey: "AIzaSyBOKAdTRz8J-9QSu8P7DEyLd6NAqqN0STI",
@@ -15,5 +16,14 @@ export const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+const auth = getAuth(app);
+
+// Special handling for Android emulator
+if (__DEV__ && Platform.OS === 'android') {
+  console.log('Setting up Firebase Auth emulator for Android');
+  // Use 10.0.2.2 for Android emulator
+  connectAuthEmulator(auth, 'http://10.0.2.2:9099');
+}
+
+export { auth };
 export const db = getFirestore(app);

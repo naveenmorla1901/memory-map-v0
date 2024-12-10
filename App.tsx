@@ -5,19 +5,20 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { auth } from './src/utils/firebaseConfig';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
-import { CardStyleInterpolators } from '@react-navigation/stack';
-
+import { View, Text } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import SignInScreen from './src/screens/auth/SignInScreen';
 import SignUpScreen from './src/screens/auth/SignUpScreen';
 import MapScreen from './src/screens/main/MapScreen';
 import SavedScreen from './src/screens/main/SavedScreen';
 import ProfileScreen from './src/screens/main/ProfileScreen';
-import { ensureTestUserLogin } from './src/services/auth/testAuth';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const MainStack = createStackNavigator();
 
 function MainTabs() {
   return (
@@ -44,40 +45,59 @@ function MainTabs() {
 }
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isConnected, setIsConnected] = useState(true);
 
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        const loginSuccess = await ensureTestUserLogin();
-        setIsAuthenticated(loginSuccess);
-      } catch (error) {
-        console.error('Error initializing app:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // Check internet connection
+    const unsubscribeNet = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected || false);
+      console.log('Connection status:', state);
+    });
 
-    initApp();
+    // Auth listener
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setIsLoading(false);
+    });
+
+    return () => {
+      unsubscribeNet();
+      unsubscribeAuth();
+    };
   }, []);
 
   if (isLoading) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
   }
 
+  if (!isConnected) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>No Internet Connection</Text>
+        <Text>Please check your connection and try again</Text>
+      </View>
+    );
+  }
   return (
     <SafeAreaProvider>
       <NavigationContainer>
+        <StatusBar style="auto" />
         <Stack.Navigator
           screenOptions={{
-            headerShown: false,
-            cardStyleInterpolator: CardStyleInterpolators.forFadeFromBottomAndroid,
+            headerShown: false
           }}
         >
-          {isAuthenticated ? (
+          {user ? (
+            // User is signed in
             <Stack.Screen name="MainTabs" component={MainTabs} />
           ) : (
+            // No user is signed in
             <>
               <Stack.Screen name="SignIn" component={SignInScreen} />
               <Stack.Screen name="SignUp" component={SignUpScreen} />

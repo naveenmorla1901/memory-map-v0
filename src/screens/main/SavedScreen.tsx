@@ -8,7 +8,7 @@ import { Location as LocationType } from '../../types/location';
 import SearchBar from '../../components/SearchBar';
 import LocationField from '../../components/LocationField';
 import * as ExpoLocation from 'expo-location';
-import { testBackendConnection } from '../../services/testConnection';
+// import { testBackendConnection } from '../../services/testConnection';
 
 export default function SavedScreen() {
   const [savedLocations, setSavedLocations] = useState<LocationType[]>([]);
@@ -144,23 +144,23 @@ export default function SavedScreen() {
     </TouchableOpacity>
   );
 
-  const testConnection = async () => {
-    try {
-      const isConnected = await testBackendConnection();
-      Alert.alert(
-        'Backend Connection Test',
-        isConnected 
-          ? 'Connection successful!' 
-          : 'Connection failed. Check console for details.'
-      );
-    } catch (error) {
-      Alert.alert(
-        'Connection Error', 
-        'Failed to test connection. Please check your network connection and backend URL.'
-      );
-      console.error('Connection test error:', error);
-    }
-  };
+  // const testConnection = async () => {
+  //   try {
+  //     const isConnected = await testBackendConnection();
+  //     Alert.alert(
+  //       'Backend Connection Test',
+  //       isConnected 
+  //         ? 'Connection successful!' 
+  //         : 'Connection failed. Check console for details.'
+  //     );
+  //   } catch (error) {
+  //     Alert.alert(
+  //       'Connection Error', 
+  //       'Failed to test connection. Please check your network connection and backend URL.'
+  //     );
+  //     console.error('Connection test error:', error);
+  //   }
+  // };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -171,7 +171,7 @@ export default function SavedScreen() {
         <View style={styles.headerButtons}>
           <TouchableOpacity 
             style={styles.testButton} 
-            onPress={testConnection}
+            // onPress={testConnection}
           >
             <Text style={styles.testButtonText}>Test Backend</Text>
           </TouchableOpacity>

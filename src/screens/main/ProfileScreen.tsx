@@ -6,7 +6,7 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../../utils/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeContext } from '../../contexts/ThemeContext';
-import { BackendTest } from '../../components/BackendTest';
+// import { BackendTest } from '../../components/BackendTest';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
@@ -72,7 +72,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             />
           </View>
         </View>
-        <BackendTest />
+        {/* <BackendTest /> */}
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutButtonText}>Sign Out</Text>
         </TouchableOpacity>
