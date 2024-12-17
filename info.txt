@@ -1,4 +1,7 @@
 for wire digrams : https://app.moqups.com/E5r3sywkPazBOwxuyAJn6qiStSdnscpl/edit/page/a7bc758b4
+open api maps  https://protomaps.com/
+backend api URL : https://console.cloud.google.com/apis/dashboard?project=gen-lang-client-0616455727&pageState=(%22duration%22:(%22groupValue%22:%22P1D%22,%22customValue%22:null))&invt=AbkXbg&inv=1
+https://console.firebase.google.com/project/memory-map-78ad6/authentication/users
 http://localhost:8002/                    # Home page
 http://localhost:8002/admin/             # Admin interface
 http://localhost:8002/docs/              # API documentation
