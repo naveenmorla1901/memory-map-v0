@@ -2,10 +2,10 @@ export const mapHtml = `
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset=\"utf-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\" />
-    <link rel=\"stylesheet\" href=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.css\" />
-    <script src=\"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body {
             padding: 0;
@@ -29,19 +29,50 @@ export const mapHtml = `
         }
 
         .custom-popup .leaflet-popup-content-wrapper {
-            background: #2c3e50;
-            color: white;
-            font-size: 12px;
-            line-height: 16px;
-            border-radius: 4px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+            line-height: 18px;
+            border-radius: 8px;
+            padding: 0;
+            overflow: hidden;
         }
+        
         .custom-popup .leaflet-popup-tip {
-            background: #2c3e50;
+            background: white;
+        }
+
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+            padding: 0;
+        }
+
+        .popup-content {
+            padding: 12px;
+        }
+
+        .popup-address {
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .save-button {
+            background-color: #FF4B55;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            border-top: 1px solid #eee;
+        }
+
+        .save-button:hover {
+            background-color: #E0434B;
         }
     </style>
 </head>
 <body>
-    <div id=\"map\"></div>
+    <div id="map"></div>
     <script>
         // Initialize map
         var map = L.map('map', {
@@ -76,10 +107,20 @@ export const mapHtml = `
                     map.removeLayer(searchMarker);
                 }
                 
+                // Create popup content with save button
+                const popupContent = \`
+                    <div class="popup-content">
+                        <div class="popup-address">\${address}</div>
+                    </div>
+                    <div class="save-button" onclick="handleSaveClick(\${lat}, \${lng}, '\${address.replace(/'/g, "\\'")}')">
+                        Save Location
+                    </div>
+                \`;
+                
                 // Create new marker with popup
                 searchMarker = L.marker([lat, lng]).addTo(map);
                 searchMarker.bindPopup(
-                    '<div style=\"max-width: 200px; font-size: 12px;\">' + address + '</div>',
+                    popupContent,
                     { 
                         className: 'custom-popup',
                         closeButton: false,
@@ -87,9 +128,9 @@ export const mapHtml = `
                     }
                 ).openPopup();
                 
-                // Send coordinates to React Native
+                // Send coordinates to React Native (without triggering save)
                 window.ReactNativeWebView.postMessage(JSON.stringify({
-                    type: 'location',
+                    type: 'locationSelected',
                     latitude: lat,
                     longitude: lng,
                     address: address
@@ -98,6 +139,16 @@ export const mapHtml = `
                 console.error('Error getting address:', error);
             }
         });
+
+        // Handle save button click
+        window.handleSaveClick = function(lat, lng, address) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'saveLocation',
+                latitude: lat,
+                longitude: lng,
+                address: address
+            }));
+        };
         
         // Notify React Native that map is ready
         window.ReactNativeWebView.postMessage(JSON.stringify({

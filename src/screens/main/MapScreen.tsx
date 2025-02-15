@@ -3,7 +3,6 @@ import { View, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-na
 import { WebView } from 'react-native-webview';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import SearchBar from '../../components/SearchBar';
 import LocationForm from '../../components/LocationForm';
 import { LocationService } from '../../services/LocationService';
@@ -11,17 +10,19 @@ import { LocationType } from '../../types/location';
 import { calculateDistance } from '../../utils/locationUtils';
 import { styles } from '../../styles/screens/MapScreen.styles';
 import { mapHtml } from '../../styles/screens/mapHtml';
+import { useLocationPermission } from '../../hooks/useLocationPermission';
 
 const MapScreen = ({ navigation }: { navigation: any }) => {
   const webViewRef = useRef<WebView>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationType | null>(null);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [showSavePopup, setShowSavePopup] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  
+  const { location: userLocation, loading: locationLoading, error: locationError, requestAndGetLocation } = useLocationPermission();
 
   useEffect(() => {
-    getUserLocation();
     const unsubscribe = navigation.addListener('focus', () => {
       loadSavedLocations();
     });
@@ -51,46 +52,55 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
   };
 
   const handleSearch = async (searchQuery: string) => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      setSearchSuggestions([]);
+      return;
+    }
 
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=4`
       );
       const data = await response.json();
 
-      if (data && data.length > 0) {
-        const { lat, lon, display_name } = data[0];
-        
-        if (webViewRef.current) {
-          const script = `
-            try {
-              if (window.map) {
-                if (window.searchMarker) {
-                  window.map.removeLayer(window.searchMarker);
-                }
-                window.map.setView([${lat}, ${lon}], 15);
-                window.searchMarker = L.marker([${lat}, ${lon}])
-                  .bindPopup("${display_name}")
-                  .addTo(window.map)
-                  .openPopup();
-              }
-            } catch (e) {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'error',
-                message: 'Search error: ' + e.toString()
-              }));
-            }
-            true;
-          `;
-          webViewRef.current.injectJavaScript(script);
-        }
-      } else {
-        Alert.alert('Not Found', 'No results found for your search');
-      }
+      const suggestions = data.map((item: any) => ({
+        id: item.place_id,
+        name: item.display_name.split(',')[0],
+        address: item.display_name,
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon)
+      }));
+
+      setSearchSuggestions(suggestions);
     } catch (error) {
       console.error('Search error:', error);
-      Alert.alert('Error', 'Failed to search for location');
+      setSearchSuggestions([]);
+    }
+  };
+
+  const handleSelectLocation = (location: any) => {
+    if (webViewRef.current) {
+      const script = `
+        try {
+          if (window.map) {
+            if (window.searchMarker) {
+              window.map.removeLayer(window.searchMarker);
+            }
+            window.map.setView([${location.latitude}, ${location.longitude}], 15);
+            window.searchMarker = L.marker([${location.latitude}, ${location.longitude}])
+              .bindPopup("${location.name}")
+              .addTo(window.map)
+              .openPopup();
+          }
+        } catch (e) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'error',
+            message: 'Search error: ' + e.toString()
+          }));
+        }
+        true;
+      `;
+      webViewRef.current.injectJavaScript(script);
     }
   };
 
@@ -110,7 +120,12 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
           Alert.alert('Map Error', data.message);
           break;
 
-        case 'location':
+        case 'locationSelected':
+          // Just update the marker, don't show save form
+          break;
+
+        case 'saveLocation':
+          // Now we show the save form only when the save button is clicked
           handleLocationSelected(data);
           break;
       }
@@ -149,22 +164,7 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
 
   const handleLocateMe = async () => {
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Location permission is required');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
-      });
-
-      setUserLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude
-      });
-
-      centerMapOnLocation(location.coords.latitude, location.coords.longitude);
+      await requestAndGetLocation();
     } catch (error) {
       console.error('Error getting location:', error);
       Alert.alert('Error', 'Could not get your location');
@@ -199,28 +199,6 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
     webViewRef.current.injectJavaScript(script);
   };
 
-  const getUserLocation = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission denied', 'Unable to access location');
-        return;
-      }
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced
-      });
-
-      setUserLocation({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude
-      });
-    } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert('Error', 'Could not get your location');
-    }
-  };
-
   const handleSaveLocation = async (locationData: LocationType) => {
     try {
       await LocationService.saveLocation(locationData);
@@ -239,6 +217,8 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
       <View style={styles.searchContainer}>
         <SearchBar 
           onSearch={handleSearch}
+          onSelectLocation={handleSelectLocation}
+          suggestions={searchSuggestions}
           placeholder="Search locations..."
         />
       </View>
