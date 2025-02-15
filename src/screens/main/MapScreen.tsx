@@ -9,8 +9,8 @@ import LocationForm from '../../components/LocationForm';
 import { LocationService } from '../../services/LocationService';
 import { LocationType } from '../../types/location';
 import { calculateDistance } from '../../utils/locationUtils';
-import { styles } from './MapScreen.styles';
-import { mapHtml } from './mapHtml';
+import { styles } from '../../styles/screens/MapScreen.styles';
+import { mapHtml } from '../../styles/screens/mapHtml';
 
 const MapScreen = ({ navigation }: { navigation: any }) => {
   const webViewRef = useRef<WebView>(null);

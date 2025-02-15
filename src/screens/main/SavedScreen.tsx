@@ -1,6 +1,5 @@
-//src/screens/main/SavedScreen.tsx
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LocationService } from '../../services/LocationService';
@@ -8,6 +7,8 @@ import { LocationType } from '../../types/location';
 import SearchBar from '../../components/SearchBar';
 import LocationField from '../../components/LocationField';
 import * as ExpoLocation from 'expo-location';
+import { savedScreenStyles } from '../../styles/screens/SavedScreen.styles';
+import { colors } from '../../styles/theme/colors';
 
 export default function SavedScreen() {
   const [savedLocations, setSavedLocations] = useState<LocationType[]>([]);
@@ -127,28 +128,28 @@ export default function SavedScreen() {
   };
 
   const renderItem = ({ item }: { item: LocationType }) => (
-    <TouchableOpacity style={styles.item} onPress={() => handleLocationPress(item)}>
-      <View style={styles.itemContent}>
+    <TouchableOpacity style={savedScreenStyles.item} onPress={() => handleLocationPress(item)}>
+      <View style={savedScreenStyles.itemContent}>
         {userLocation && (
-          <Text style={styles.itemDistance}>
+          <Text style={savedScreenStyles.itemDistance}>
             {calculateDistance(userLocation, item).toFixed(1)} mi
           </Text>
         )}
-        <View style={styles.itemDetails}>
-          <Text style={styles.itemName}>{getLocationName(item)}</Text>
-          <Text style={styles.itemAddress}>{item.address}</Text>
+        <View style={savedScreenStyles.itemDetails}>
+          <Text style={savedScreenStyles.itemName}>{getLocationName(item)}</Text>
+          <Text style={savedScreenStyles.itemAddress}>{item.address}</Text>
         </View>
       </View>
-      <Text style={styles.itemCategory}>{item.category}</Text>
+      <Text style={savedScreenStyles.itemCategory}>{item.category}</Text>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Saved Locations</Text>
-        <TouchableOpacity style={styles.filterButton}>
-          <Ionicons name="filter" size={24} color="#FF4B55" />
+    <SafeAreaView style={savedScreenStyles.container}>
+      <View style={savedScreenStyles.header}>
+        <Text style={savedScreenStyles.title}>Saved Locations</Text>
+        <TouchableOpacity style={savedScreenStyles.filterButton}>
+          <Ionicons name="filter" size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
       <SearchBar 
@@ -156,10 +157,10 @@ export default function SavedScreen() {
         placeholder="Search saved locations"
       />
       {savedLocations.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No saved locations yet.</Text>
-          <TouchableOpacity onPress={loadSavedLocations} style={styles.refreshButton}>
-            <Text style={styles.refreshButtonText}>Refresh</Text>
+        <View style={savedScreenStyles.emptyState}>
+          <Text style={savedScreenStyles.emptyStateText}>No saved locations yet.</Text>
+          <TouchableOpacity onPress={loadSavedLocations} style={savedScreenStyles.refreshButton}>
+            <Text style={savedScreenStyles.refreshButtonText}>Refresh</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -172,17 +173,17 @@ export default function SavedScreen() {
         />
       )}
       {selectedLocation && (
-        <View style={styles.editContainer}>
+        <View style={savedScreenStyles.editContainer}>
           <LocationField
             location={selectedLocation}
             onFieldChange={handleFieldChange}
           />
-          <View style={styles.editButtons}>
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-              <Text style={styles.buttonText}>Save</Text>
+          <View style={savedScreenStyles.editButtons}>
+            <TouchableOpacity style={savedScreenStyles.saveButton} onPress={handleSave}>
+              <Text style={savedScreenStyles.buttonText}>Save</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-              <Text style={styles.buttonText}>Delete</Text>
+            <TouchableOpacity style={savedScreenStyles.deleteButton} onPress={handleDelete}>
+              <Text style={savedScreenStyles.buttonText}>Delete</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -190,108 +191,3 @@ export default function SavedScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  filterButton: {
-    padding: 5,
-  },
-  item: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  itemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  itemDistance: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 10,
-    width: 50,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  itemAddress: {
-    fontSize: 14,
-    color: '#666',
-  },
-  itemCategory: {
-    fontSize: 14,
-    color: '#FF4B55',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyStateText: {
-    fontSize: 18,
-    color: '#666',
-    marginBottom: 20,
-  },
-  refreshButton: {
-    backgroundColor: '#FF4B55',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  refreshButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  editContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  editButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  saveButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  deleteButton: {
-    backgroundColor: '#F44336',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-});
