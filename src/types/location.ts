@@ -1,5 +1,5 @@
 export interface LocationType {
-    id?: string;
+    id: string;
     name: string;
     address: string;
     coordinates: {
@@ -12,6 +12,11 @@ export interface LocationType {
     instagramUrl?: string;
     savedAt?: string;
     updatedAt?: string;
+    isFavorite?: boolean;
+    notifyEnabled?: boolean;
+    notifyRadius?: number;
+    notes: string;
+    distance?: number | null;
   }
   
   export interface SearchResult {
@@ -34,3 +39,4 @@ export interface LocationType {
     center: [number, number];
     zoom: number;
   }
+  

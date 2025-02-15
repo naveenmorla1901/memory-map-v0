@@ -4,7 +4,7 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, Alert } from 'react
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LocationService } from '../../services/LocationService';
-import { Location as LocationType } from '../../types/location';
+import { LocationType } from '../../types/location';
 import SearchBar from '../../components/SearchBar';
 import LocationField from '../../components/LocationField';
 import * as ExpoLocation from 'expo-location';
@@ -22,7 +22,7 @@ export default function SavedScreen() {
 
   const loadSavedLocations = async () => {
     try {
-      const locations = await LocationService.getLocations();
+      const locations = await LocationService.getSavedLocations();
       setSavedLocations(locations);
     } catch (error) {
       console.error('Error loading saved locations:', error);
@@ -58,11 +58,11 @@ export default function SavedScreen() {
   ) => {
     const R = 6371;
     const deg2rad = (deg: number) => deg * (Math.PI / 180);
-    const dLat = deg2rad(savedLoc.latitude - userLoc.latitude);
-    const dLon = deg2rad(savedLoc.longitude - userLoc.longitude);
+    const dLat = deg2rad(savedLoc.coordinates.latitude - userLoc.latitude);
+    const dLon = deg2rad(savedLoc.coordinates.longitude - userLoc.longitude);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(deg2rad(userLoc.latitude)) * Math.cos(deg2rad(savedLoc.latitude)) *
+      Math.cos(deg2rad(userLoc.latitude)) * Math.cos(deg2rad(savedLoc.coordinates.latitude)) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
@@ -87,9 +87,9 @@ export default function SavedScreen() {
   const handleFieldChange = (field: keyof LocationType, value: string) => {
     if (selectedLocation) {
       setSelectedLocation(prev => ({
-        ...prev!,
+        ...prev,
         [field]: value
-      }));
+      } as LocationType));
     }
   };
 
@@ -296,4 +296,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

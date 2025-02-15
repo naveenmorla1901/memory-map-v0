@@ -1,11 +1,11 @@
 //src/components/LocationField.tsx
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
-import { LocationInput } from '../types/location';
+import { LocationType } from '../types/location';
 
 interface LocationFieldProps {
-  location: LocationInput;
-  onFieldChange: (field: keyof LocationInput, value: string) => void;
+  location: Partial<LocationType>;
+  onFieldChange: (field: keyof LocationType, value: string) => void;
 }
 
 const LocationField: React.FC<LocationFieldProps> = ({ location, onFieldChange }) => {
@@ -60,4 +60,3 @@ const styles = StyleSheet.create({
 });
 
 export default LocationField;
-

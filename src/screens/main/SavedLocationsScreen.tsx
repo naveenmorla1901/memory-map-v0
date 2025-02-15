@@ -13,8 +13,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { LocationService } from '../../services/LocationService';
 import { LocationType } from '../../types/location';
 import { formatDistance } from '../../utils/locationUtils';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../../navigation/NavigationTypes';
 
-const SavedLocationsScreen = ({ navigation }) => {
+type SavedLocationsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'SavedLocations'>;
+
+const SavedLocationsScreen = ({ navigation }: { navigation: SavedLocationsScreenNavigationProp }) => {
   const [locations, setLocations] = useState<LocationType[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,7 +58,7 @@ const SavedLocationsScreen = ({ navigation }) => {
   const renderLocationItem = ({ item }: { item: LocationType }) => (
     <TouchableOpacity 
       style={styles.locationCard}
-      onPress={() => navigation.navigate('Map', { location: item })}
+      onPress={() => navigation.navigate('MapScreen', { location: item })}
     >
       <View style={styles.locationInfo}>
         <View style={styles.locationHeader}>
@@ -74,12 +78,12 @@ const SavedLocationsScreen = ({ navigation }) => {
           </Text>
           {item.distance !== undefined && (
             <Text style={styles.distanceText}>
-              {formatDistance(item.distance)}
+              {item.distance} miles away
             </Text>
           )}
         </View>
 
-        {item.notes && (
+        {item.notes.trim() !== '' && (
           <Text style={styles.notesText} numberOfLines={1}>
             {item.notes}
           </Text>
@@ -121,7 +125,7 @@ const SavedLocationsScreen = ({ navigation }) => {
         <FlatList
           data={locations}
           renderItem={renderLocationItem}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.id || 'unknown-location'}
           contentContainerStyle={styles.listContainer}
           refreshControl={
             <RefreshControl

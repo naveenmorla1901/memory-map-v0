@@ -38,7 +38,7 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
     try {
       const locations = await LocationService.getSavedLocations();
       if (locations.length > 0 && webViewRef.current) {
-        const script = locations.map(loc => `
+        const script = locations.map((loc: LocationType) => `
           L.marker([${loc.coordinates.latitude}, ${loc.coordinates.longitude}])
             .bindPopup("${loc.name}")
             .addTo(window.map);

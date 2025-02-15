@@ -25,7 +25,11 @@ export const calculateDistance = (
     return Math.round(distance * 10) / 10; // Round to 1 decimal place
   };
   
-  export const formatDistance = (miles: number): string => {
+  export const formatDistance = (miles: number | null): string => {
+    if (miles === null) {
+      return 'Distance unavailable';
+    }
+    
     if (miles < 0.1) {
       return 'Less than 0.1 mile away';
     } else if (miles < 1) {

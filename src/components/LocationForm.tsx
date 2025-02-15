@@ -28,7 +28,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
     description: initialData.description || '',
     category: initialData.category || '',
     address: initialData.address || '',
-    notes: '',
+    notes: initialData.notes || '',
     isFavorite: initialData.isFavorite || false,
     notifyRadius: '1.0',
     notifyEnabled: false,
