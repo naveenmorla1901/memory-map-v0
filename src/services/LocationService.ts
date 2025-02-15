@@ -1,111 +1,99 @@
-//src/services/LocationService.ts
-import * as SQLite from 'expo-sqlite';
-import { v4 as uuidv4 } from 'uuid';
-import { LocationInput, Location } from '../types/location';
-import { locationInputSchema } from '../utils/validation';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LocationType, SearchResult } from '../types/location';
 
-export class LocationService {
-  private static db = SQLite.openDatabase('memorymap.db');
+class LocationService {
+  private static readonly STORAGE_KEY = 'saved_locations';
+  private static readonly NOMINATIM_API = 'https://nominatim.openstreetmap.org/search';
 
-  static async saveLocation(location: LocationInput): Promise<string> {
+  static async getSavedLocations() {
     try {
-      const validatedLocation = locationInputSchema.parse({
-        ...location,
-        name: location.name.slice(0, 100) // Ensure name is not longer than 100 characters
-      });
-      const id = uuidv4();
-      const now = new Date().toISOString();
-
-      return new Promise<string>((resolve, reject) => {
-        this.db.transaction(
-          tx => {
-            tx.executeSql(
-              `INSERT INTO locations (id, name, latitude, longitude, description, address, category, created_at, updated_at, sync_status, version, deleted)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-              [
-                id,
-                validatedLocation.name,
-                validatedLocation.latitude,
-                validatedLocation.longitude,
-                validatedLocation.description,
-                validatedLocation.address,
-                validatedLocation.category,
-                validatedLocation.created_at || now,
-                validatedLocation.updated_at || now,
-                'pending',
-                1,
-                0
-              ],
-              (_, result) => {
-                if (result.rowsAffected > 0) {
-                  resolve(id);
-                } else {
-                  reject(new Error('Failed to save location'));
-                }
-              },
-              (_, error) => {
-                reject(error);
-                return false;
-              }
-            );
-          },
-          error => reject(error)
-        );
-      });
+      const savedLocations = await AsyncStorage.getItem(this.STORAGE_KEY);
+      return savedLocations ? JSON.parse(savedLocations) : [];
     } catch (error) {
-      console.error('Validation error:', error);
-      throw new Error('Invalid location data');
+      console.error('Error getting saved locations:', error);
+      return [];
     }
   }
 
-  static async getLocations(): Promise<Location[]> {
-    return new Promise<Location[]>((resolve, reject) => {
-      this.db.transaction(tx => {
-        tx.executeSql(
-          'SELECT * FROM locations WHERE deleted = 0 ORDER BY created_at DESC',
-          [],
-          (_, { rows }) => {
-            resolve(rows._array as Location[]);
-          },
-          (_, error) => {
-            reject(error);
-            return false;
-          }
-        );
-      });
-    });
+  static async searchLocations(query: string): Promise<SearchResult[]> {
+    try {
+      const response = await fetch(
+        `${this.NOMINATIM_API}?format=json&q=${encodeURIComponent(query)}&limit=5`
+      );
+      const data = await response.json();
+      
+      return data.map((item: any) => ({
+        id: item.place_id.toString(),
+        name: item.display_name.split(',')[0],
+        address: item.display_name,
+        coordinates: {
+          latitude: parseFloat(item.lat),
+          longitude: parseFloat(item.lon)
+        }
+      }));
+    } catch (error) {
+      console.error('Error searching locations:', error);
+      throw error;
+    }
   }
 
-  static async updateLocation(location: Location): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.db.transaction(tx => {
-        tx.executeSql(
-          'UPDATE locations SET name = ?, description = ?, address = ?, category = ?, updated_at = ?, sync_status = ? WHERE id = ?',
-          [location.name, location.description, location.address, location.category, new Date().toISOString(), 'pending', location.id],
-          (_, result) => resolve(),
-          (_, error) => {
-            reject(error);
-            return false;
-          }
-        );
-      });
-    });
+  static async saveLocation(location: LocationType) {
+    try {
+      const savedLocations = await this.getSavedLocations();
+      const newLocation = {
+        ...location,
+        id: Date.now().toString(),
+        savedAt: new Date().toISOString()
+      };
+      
+      const updatedLocations = [...savedLocations, newLocation];
+      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedLocations));
+      
+      return newLocation;
+    } catch (error) {
+      console.error('Error saving location:', error);
+      throw error;
+    }
   }
 
-  static async deleteLocation(id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.db.transaction(tx => {
-        tx.executeSql(
-          'UPDATE locations SET deleted = ?, sync_status = ? WHERE id = ?',
-          [1, 'pending', id],
-          (_, result) => resolve(),
-          (_, error) => {
-            reject(error);
-            return false;
-          }
-        );
-      });
-    });
+  static async deleteLocation(locationId: string) {
+    try {
+      const savedLocations = await this.getSavedLocations();
+      const updatedLocations = savedLocations.filter((loc: LocationType) => loc.id !== locationId);
+      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(updatedLocations));
+    } catch (error) {
+      console.error('Error deleting location:', error);
+      throw error;
+    }
+  }
+
+  static async updateLocation(locationId: string, updates: Partial<LocationType>) {
+    try {
+      const savedLocations = await this.getSavedLocations();
+      const locationIndex = savedLocations.findIndex((loc: LocationType) => loc.id === locationId);
+      
+      if (locationIndex !== -1) {
+        savedLocations[locationIndex] = {
+          ...savedLocations[locationIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
+        };
+        
+        await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(savedLocations));
+        return savedLocations[locationIndex];
+      }
+      
+      throw new Error('Location not found');
+    } catch (error) {
+      console.error('Error updating location:', error);
+      throw error;
+    }
+  }
+
+  static async getLocations(): Promise<LocationType[]> {
+    const jsonValue = await AsyncStorage.getItem('@locations');
+    return jsonValue ? JSON.parse(jsonValue) : [];
   }
 }
 
+export { LocationService };

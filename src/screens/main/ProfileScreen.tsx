@@ -1,169 +1,197 @@
-//src/screens/main/ProfileScreens.tsx
-import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Switch, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../utils/firebaseConfig';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ThemeContext } from '../../contexts/ThemeContext';
+import { authService } from '../../services/AuthService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function ProfileScreen({ navigation }: { navigation: any }) {
-  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(true);
-  const { isDarkMode, toggleTheme } = useContext(ThemeContext);
+const ProfileScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
+  const [settings, setSettings] = useState({
+    notifications: false,
+    darkMode: false,
+    autoSync: true,
+    locationTracking: false
+  });
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      navigation.navigate('SignIn');
-    } catch (error) {
-      console.error('Error signing out: ', error);
+  useEffect(() => {
+    loadUserProfile();
+    loadSettings();
+  }, []);
+
+  const loadUserProfile = async () => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
     }
   };
 
-  const renderInfoItem = (icon: string, label: string, value: string) => (
-    <View style={styles.infoItem}>
-      <Ionicons name={icon as any} size={24} color="#FF4B55" style={styles.infoIcon} />
-      <View style={styles.infoTextContainer}>
-        <Text style={[styles.infoLabel, isDarkMode && styles.darkText]}>{label}</Text>
-        <Text style={[styles.infoValue, isDarkMode && styles.darkText]}>{value}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color="#ccc" />
-    </View>
-  );
+  const loadSettings = async () => {
+    try {
+      const savedSettings = await AsyncStorage.getItem('userSettings');
+      if (savedSettings) {
+        setSettings(JSON.parse(savedSettings));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const handleSettingToggle = async (setting) => {
+    const newSettings = {
+      ...settings,
+      [setting]: !settings[setting]
+    };
+    setSettings(newSettings);
+    
+    try {
+      await AsyncStorage.setItem('userSettings', JSON.stringify(newSettings));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await authService.logout();
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
-    <SafeAreaView style={[styles.container, isDarkMode && styles.darkContainer]}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/150' }}
-            style={styles.profileImage}
+    <ScrollView style={styles.container}>
+      <View style={styles.profileHeader}>
+        <View style={styles.avatarContainer}>
+          <Ionicons name="person-circle" size={80} color="#FF4B55" />
+        </View>
+        <Text style={styles.userName}>{user?.email || 'User'}</Text>
+      </View>
+
+      <View style={styles.settingsSection}>
+        <Text style={styles.sectionTitle}>Settings</Text>
+        
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Push Notifications</Text>
+          <Switch
+            value={settings.notifications}
+            onValueChange={() => handleSettingToggle('notifications')}
+            trackColor={{ false: "#767577", true: "#FF4B55" }}
           />
-          <Text style={[styles.name, isDarkMode && styles.darkText]}>Anna Avetisyan</Text>
-          <TouchableOpacity style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit Profile</Text>
-          </TouchableOpacity>
         </View>
-        <View style={styles.infoContainer}>
-          {renderInfoItem('calendar', 'Birthday', 'May 8, 1990')}
-          {renderInfoItem('call', 'Phone', '+1 818 123 4567')}
-          {renderInfoItem('logo-instagram', 'Instagram', '@anna_avetisyan')}
-          {renderInfoItem('mail', 'Email', 'anna@example.com')}
-          {renderInfoItem('lock-closed', 'Password', '********')}
+
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Dark Mode</Text>
+          <Switch
+            value={settings.darkMode}
+            onValueChange={() => handleSettingToggle('darkMode')}
+            trackColor={{ false: "#767577", true: "#FF4B55" }}
+          />
         </View>
-        <View style={styles.settingsContainer}>
-          <View style={styles.settingItem}>
-            <Text style={[styles.settingLabel, isDarkMode && styles.darkText]}>Enable Notifications</Text>
-            <Switch
-              value={isNotificationsEnabled}
-              onValueChange={setIsNotificationsEnabled}
-              trackColor={{ false: "#767577", true: "#FF4B55" }}
-              thumbColor={isNotificationsEnabled ? "#f4f3f4" : "#f4f3f4"}
-            />
-          </View>
-          <View style={styles.settingItem}>
-            <Text style={[styles.settingLabel, isDarkMode && styles.darkText]}>Dark Mode</Text>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleTheme}
-              trackColor={{ false: "#767577", true: "#FF4B55" }}
-              thumbColor={isDarkMode ? "#f4f3f4" : "#f4f3f4"}
-            />
-          </View>
+
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Auto Sync</Text>
+          <Switch
+            value={settings.autoSync}
+            onValueChange={() => handleSettingToggle('autoSync')}
+            trackColor={{ false: "#767577", true: "#FF4B55" }}
+          />
         </View>
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Text style={styles.signOutButtonText}>Sign Out</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+
+        <View style={styles.settingItem}>
+          <Text style={styles.settingLabel}>Location Tracking</Text>
+          <Switch
+            value={settings.locationTracking}
+            onValueChange={() => handleSettingToggle('locationTracking')}
+            trackColor={{ false: "#767577", true: "#FF4B55" }}
+          />
+        </View>
+      </View>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={24} color="#fff" style={styles.logoutIcon} />
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  darkContainer: {
-    backgroundColor: '#1a1a1a',
-  },
-  header: {
+  profileHeader: {
     alignItems: 'center',
     padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+  avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  name: {
-    fontSize: 24,
+  userName: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 10,
+    color: '#333',
   },
-  darkText: {
-    color: '#fff',
-  },
-  editButton: {
-    backgroundColor: '#FF4B55',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  editButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  infoContainer: {
+  settingsSection: {
     padding: 20,
   },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 20,
-  },
-  infoIcon: {
-    marginRight: 15,
-  },
-  infoTextContainer: {
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  settingsContainer: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   settingLabel: {
     fontSize: 16,
+    color: '#333',
   },
-  signOutButton: {
-    backgroundColor: '#f0f0f0',
+  logoutButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FF4B55',
+    margin: 20,
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 8,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 40,
   },
-  signOutButtonText: {
-    color: '#FF4B55',
+  logoutIcon: {
+    marginRight: 10,
+  },
+  logoutText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
 });
 
+export default ProfileScreen;

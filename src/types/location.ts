@@ -1,23 +1,36 @@
-//src/types/location.ts
-export interface LocationInput {
-    // Basic location information (required)
+export interface LocationType {
+    id?: string;
     name: string;
-    latitude: number;
-    longitude: number;
-    description: string;
     address: string;
-    category: string;
-  
-    // Metadata
-    created_at?: string;
-    updated_at?: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
+    category?: string;
+    description?: string;
+    isInstagramSource?: boolean;
+    instagramUrl?: string;
+    savedAt?: string;
+    updatedAt?: string;
   }
   
-  export interface Location extends LocationInput {
+  export interface SearchResult {
     id: string;
-    sync_status: 'pending' | 'synced' | 'failed';
-    version: number;
-    deleted: boolean;
+    name: string;
+    address: string;
+    coordinates: {
+      latitude: number;
+      longitude: number;
+    };
   }
   
+  export interface LocationViewProps {
+    location: LocationType;
+    onSelect?: (location: LocationType) => void;
+    onDelete?: (locationId: string) => void;
+  }
   
+  export interface MapViewport {
+    center: [number, number];
+    zoom: number;
+  }

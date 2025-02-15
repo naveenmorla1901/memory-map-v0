@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "815193172570",
+    "project_id": "memory-map-4c46e",
+    "storage_bucket": "memory-map-4c46e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:815193172570:android:af5b5a2b3e0c1e49d2f940",
+        "android_client_info": {
+          "package_name": "com.memorymap.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9zrWWpv9fHVX8TpD6g9YDVVy4DwzPfhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

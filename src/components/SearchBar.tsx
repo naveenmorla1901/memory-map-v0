@@ -1,85 +1,61 @@
-//src/components/SearchBar.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Text, FlatList } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
-  fetchSuggestions?: (query: string) => Promise<string[]>;
-  onOutsideClick: () => void;
+  placeholder?: string;
+  onFocus?: () => void;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ onSearch, fetchSuggestions, onOutsideClick }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const containerRef = useRef<View>(null);
+const SearchBar: React.FC<SearchBarProps> = ({
+  onSearch,
+  placeholder = 'Search locations...',
+  onFocus,
+}) => {
+  const [searchText, setSearchText] = useState('');
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (fetchSuggestions && searchQuery.length > 2) {
-        fetchSuggestions(searchQuery).then(setSuggestions);
-      } else {
-        setSuggestions([]);
-      }
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, fetchSuggestions]);
-
-  useEffect(() => {
-    const handleClickOutside = () => {
-      onOutsideClick();
-    };
-
-    return () => {};
-  }, [onOutsideClick]);
-
-  const handleSearch = () => {
-    onSearch(searchQuery);
-    setSuggestions([]);
+  const handleSubmit = () => {
+    if (searchText.trim()) {
+      onSearch(searchText.trim());
+    }
   };
 
-  const handleSuggestionPress = (suggestion: string) => {
-    setSearchQuery(suggestion);
-    onSearch(suggestion);
-    setSuggestions([]);
+  const handleClear = () => {
+    setSearchText('');
   };
 
   return (
-    <View ref={containerRef} style={styles.container}>
-      <View style={styles.inputContainer}>
+    <View style={styles.container}>
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
         <TextInput
           style={styles.input}
-          placeholder="Search for a location"
-          value={searchQuery}
-          onChangeText={(text) => {
-            setSearchQuery(text);
-            if (text.length === 0) {
-              setSuggestions([]);
-            }
-          }}
-          onSubmitEditing={handleSearch}
-          onBlur={onOutsideClick}
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholder={placeholder}
+          placeholderTextColor="#999"
+          onSubmitEditing={handleSubmit}
+          returnKeyType="search"
+          autoFocus={false}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="default"
+          blurOnSubmit={false}
+          showSoftInputOnFocus={true}
         />
-        <TouchableOpacity style={styles.button} onPress={handleSearch}>
-          <Ionicons name="search" size={24} color="#fff" />
-        </TouchableOpacity>
+        {searchText.length > 0 && (
+          <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
+            <Ionicons name="close-circle" size={20} color="#666" />
+          </TouchableOpacity>
+        )}
       </View>
-      {suggestions.length > 0 && (
-        <FlatList
-          data={suggestions}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.suggestionItem}
-              onPress={() => handleSuggestionPress(item)}
-            >
-              <Text>{item}</Text>
-            </TouchableOpacity>
-          )}
-          style={styles.suggestionsList}
-        />
-      )}
     </View>
   );
 };
@@ -87,38 +63,37 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, fetchSuggestions, onOut
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    zIndex: 1,
   },
-  inputContainer: {
+  searchContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    marginBottom: 5,
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 48,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   input: {
     flex: 1,
-    height: 40,
-    paddingHorizontal: 10,
+    fontSize: 16,
+    color: '#333',
+    height: '100%',
+    padding: 0,
   },
-  button: {
-    backgroundColor: '#FF4B55',
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 40,
-    borderTopRightRadius: 5,
-    borderBottomRightRadius: 5,
-  },
-  suggestionsList: {
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    maxHeight: 200,
-  },
-  suggestionItem: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  clearButton: {
+    padding: 4,
+    marginLeft: 8,
   },
 });
 
 export default SearchBar;
-
