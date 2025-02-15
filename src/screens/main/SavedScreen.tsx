@@ -96,7 +96,7 @@ export default function SavedScreen() {
   const handleSave = async () => {
     if (selectedLocation) {
       try {
-        await LocationService.updateLocation(selectedLocation);
+        await LocationService.updateLocation(selectedLocation.id, selectedLocation);
         Alert.alert('Success', 'Location updated successfully!');
         loadSavedLocations();
         setSelectedLocation(null);
@@ -152,9 +152,8 @@ export default function SavedScreen() {
         </TouchableOpacity>
       </View>
       <SearchBar 
-        onSearch={handleSearch} 
-        fetchSuggestions={async (query: string) => []}
-        onOutsideClick={() => {}}
+        onSearch={handleSearch}
+        placeholder="Search saved locations"
       />
       {savedLocations.length === 0 ? (
         <View style={styles.emptyState}>
