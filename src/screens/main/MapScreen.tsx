@@ -83,14 +83,28 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
       const script = `
         try {
           if (window.map) {
+            // Clear existing markers
             if (window.searchMarker) {
               window.map.removeLayer(window.searchMarker);
             }
-            window.map.setView([${location.latitude}, ${location.longitude}], 15);
+            if (window.searchLayer) {
+              window.map.removeLayer(window.searchLayer);
+            }
+            
+            // Create new marker with popup
             window.searchMarker = L.marker([${location.latitude}, ${location.longitude}])
               .bindPopup("${location.name}")
               .addTo(window.map)
               .openPopup();
+              
+            // Create a feature group for the search result
+            window.searchLayer = L.featureGroup([window.searchMarker]).addTo(window.map);
+            
+            // Fly to location with animation
+            window.map.flyTo([${location.latitude}, ${location.longitude}], 15, {
+              animate: true,
+              duration: 1
+            });
           }
         } catch (e) {
           window.ReactNativeWebView.postMessage(JSON.stringify({

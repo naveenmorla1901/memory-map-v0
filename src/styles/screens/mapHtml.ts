@@ -75,15 +75,15 @@ export const mapHtml = `
     <div id="map"></div>
     <script>
         // Initialize map
-        var map = L.map('map', {
+        window.map = L.map('map', {
             zoomControl: false,
             attributionControl: false
         }).setView([0, 0], 2);
-        
+
         // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        window.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19
-        }).addTo(map);
+        }).addTo(window.map);
         
         // Variables to store markers
         var userMarker = null;
