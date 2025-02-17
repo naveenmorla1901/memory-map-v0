@@ -85,6 +85,15 @@ export const savedLocationsStyles = StyleSheet.create({
     color: colors.text.tertiary,
     fontStyle: 'italic',
   },
+  actionButtons: {
+    flexDirection: 'column',
+    justifyContent: 'space-around',
+    paddingLeft: spacing.sm,
+  },
+  editButton: {
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+  },
   deleteButton: {
     padding: spacing.sm,
   },

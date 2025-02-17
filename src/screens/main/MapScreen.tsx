@@ -12,15 +12,34 @@ import { styles } from '../../styles/screens/MapScreen.styles';
 import { mapHtml } from '../../styles/screens/mapHtml';
 import { useLocationPermission } from '../../hooks/useLocationPermission';
 
-const MapScreen = ({ navigation }: { navigation: any }) => {
+const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
   const webViewRef = useRef<WebView>(null);
   const [currentLocation, setCurrentLocation] = useState<LocationType | null>(null);
   const [showSavePopup, setShowSavePopup] = useState(false);
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [isMapReady, setIsMapReady] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [isEditMode, setIsEditMode] = useState(false);
   
   const { location: userLocation, loading: locationLoading, error: locationError, requestAndGetLocation } = useLocationPermission();
+
+  // Handle edit mode when navigating from SavedLocationsScreen
+  useEffect(() => {
+    if (route.params?.location && route.params?.editLocation) {
+      const locationToEdit = route.params.location;
+      setCurrentLocation(locationToEdit);
+      setShowSavePopup(true);
+      setIsEditMode(true);
+      
+      // Center map on the location being edited
+      if (isMapReady && locationToEdit.coordinates) {
+        centerMapOnLocation(
+          locationToEdit.coordinates.latitude,
+          locationToEdit.coordinates.longitude
+        );
+      }
+    }
+  }, [route.params, isMapReady]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -31,9 +50,12 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
 
   useEffect(() => {
     if (isMapReady && userLocation) {
-      centerMapOnLocation(userLocation.latitude, userLocation.longitude);
+      // Only center on user location if we're not in edit mode
+      if (!isEditMode) {
+        centerMapOnLocation(userLocation.latitude, userLocation.longitude);
+      }
     }
-  }, [isMapReady, userLocation]);
+  }, [isMapReady, userLocation, isEditMode]);
 
   const loadSavedLocations = async () => {
     try {
@@ -195,12 +217,23 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
           if (window.userMarker) {
             window.map.removeLayer(window.userMarker);
           }
-          window.userMarker = L.marker([${latitude}, ${longitude}], {
-            icon: L.divIcon({
-              className: 'user-dot',
-              iconSize: [20, 20]
-            })
-          }).addTo(window.map);
+          ${isEditMode ? `
+            // Add marker for location being edited
+            if (window.editMarker) {
+              window.map.removeLayer(window.editMarker);
+            }
+            window.editMarker = L.marker([${latitude}, ${longitude}])
+              .bindPopup("Editing: ${currentLocation?.name || ''}")
+              .addTo(window.map)
+              .openPopup();
+          ` : `
+            window.userMarker = L.marker([${latitude}, ${longitude}], {
+              icon: L.divIcon({
+                className: 'user-dot',
+                iconSize: [20, 20]
+              })
+            }).addTo(window.map);
+          `}
         }
       } catch (e) {
         window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -215,14 +248,25 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
 
   const handleSaveLocation = async (locationData: LocationType) => {
     try {
-      await LocationService.saveLocation(locationData);
+      if (isEditMode) {
+        await LocationService.updateLocation(locationData);
+        Alert.alert('Success', 'Location updated successfully!');
+      } else {
+        await LocationService.saveLocation(locationData);
+        Alert.alert('Success', 'Location saved successfully!');
+      }
+      
       setShowSavePopup(false);
       setCurrentLocation(null);
-      Alert.alert('Success', 'Location saved successfully!');
+      setIsEditMode(false);
       loadSavedLocations(); // Refresh markers on map
+      
+      if (isEditMode) {
+        navigation.goBack(); // Return to saved locations after editing
+      }
     } catch (error) {
       console.error('Error saving location:', error);
-      Alert.alert('Error', 'Failed to save location');
+      Alert.alert('Error', isEditMode ? 'Failed to update location' : 'Failed to save location');
     }
   };
 
@@ -280,7 +324,14 @@ const MapScreen = ({ navigation }: { navigation: any }) => {
         <LocationForm
           initialData={currentLocation}
           onSave={handleSaveLocation}
-          onClose={() => setShowSavePopup(false)}
+          onClose={() => {
+            setShowSavePopup(false);
+            setIsEditMode(false);
+            if (isEditMode) {
+              navigation.goBack();
+            }
+          }}
+          isEditMode={isEditMode}
         />
       )}
     </SafeAreaView>

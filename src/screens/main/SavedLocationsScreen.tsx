@@ -52,6 +52,14 @@ const SavedLocationsScreen = ({ navigation }) => {
     }
   };
 
+  const handleEditLocation = (location: LocationType) => {
+    navigation.navigate('Map', { 
+      location,
+      mode: 'edit',
+      editLocation: true
+    });
+  };
+
   const renderLocationItem = ({ item }: { item: LocationType }) => (
     <TouchableOpacity 
       style={savedLocationsStyles.locationCard}
@@ -87,12 +95,21 @@ const SavedLocationsScreen = ({ navigation }) => {
         )}
       </View>
 
-      <TouchableOpacity 
-        style={savedLocationsStyles.deleteButton}
-        onPress={() => handleDeleteLocation(item.id)}
-      >
-        <Ionicons name="trash-outline" size={20} color={colors.error} />
-      </TouchableOpacity>
+      <View style={savedLocationsStyles.actionButtons}>
+        <TouchableOpacity 
+          style={savedLocationsStyles.editButton}
+          onPress={() => handleEditLocation(item)}
+        >
+          <Ionicons name="pencil" size={20} color={colors.primary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={savedLocationsStyles.deleteButton}
+          onPress={() => handleDeleteLocation(item.id)}
+        >
+          <Ionicons name="trash-outline" size={20} color={colors.error} />
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 

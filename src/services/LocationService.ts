@@ -42,8 +42,8 @@ class LocationService {
       const savedLocations = await this.getSavedLocations();
       const newLocation = {
         ...location,
-        id: Date.now().toString(),
-        savedAt: new Date().toISOString()
+        id: location.id || Date.now().toString(),
+        savedAt: location.savedAt || new Date().toISOString()
       };
       
       const updatedLocations = [...savedLocations, newLocation];
@@ -67,23 +67,26 @@ class LocationService {
     }
   }
 
-  static async updateLocation(locationId: string, updates: Partial<LocationType>) {
+  static async updateLocation(location: LocationType) {
     try {
       const savedLocations = await this.getSavedLocations();
-      const locationIndex = savedLocations.findIndex((loc: LocationType) => loc.id === locationId);
+      const locationIndex = savedLocations.findIndex((loc: LocationType) => loc.id === location.id);
       
-      if (locationIndex !== -1) {
-        savedLocations[locationIndex] = {
-          ...savedLocations[locationIndex],
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        
-        await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(savedLocations));
-        return savedLocations[locationIndex];
+      if (locationIndex === -1) {
+        throw new Error('Location not found');
       }
+
+      // Update the location while preserving the original savedAt date
+      const updatedLocation = {
+        ...location,
+        updatedAt: new Date().toISOString(),
+        savedAt: savedLocations[locationIndex].savedAt
+      };
       
-      throw new Error('Location not found');
+      savedLocations[locationIndex] = updatedLocation;
+      await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(savedLocations));
+      
+      return updatedLocation;
     } catch (error) {
       console.error('Error updating location:', error);
       throw error;
