@@ -20,10 +20,10 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
   const [isMapReady, setIsMapReady] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [lastEditedCoords, setLastEditedCoords] = useState<{ lat: number; lng: number } | null>(null);
   
   const { location: userLocation, loading: locationLoading, error: locationError, requestAndGetLocation } = useLocationPermission();
 
-  // Handle edit mode when navigating from SavedLocationsScreen
   useEffect(() => {
     if (route.params?.location && route.params?.editLocation) {
       const locationToEdit = route.params.location;
@@ -31,12 +31,12 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
       setShowSavePopup(true);
       setIsEditMode(true);
       
-      // Center map on the location being edited
-      if (isMapReady && locationToEdit.coordinates) {
-        centerMapOnLocation(
-          locationToEdit.coordinates.latitude,
-          locationToEdit.coordinates.longitude
-        );
+      // Store the edited location coordinates
+      if (locationToEdit.coordinates) {
+        setLastEditedCoords({
+          lat: locationToEdit.coordinates.latitude,
+          lng: locationToEdit.coordinates.longitude
+        });
       }
     }
   }, [route.params, isMapReady]);
@@ -49,11 +49,8 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
   }, [navigation]);
 
   useEffect(() => {
-    if (isMapReady && userLocation) {
-      // Only center on user location if we're not in edit mode
-      if (!isEditMode) {
-        centerMapOnLocation(userLocation.latitude, userLocation.longitude);
-      }
+    if (isMapReady && userLocation && !isEditMode && !lastEditedCoords) {
+      centerMapOnLocation(userLocation.latitude, userLocation.longitude);
     }
   }, [isMapReady, userLocation, isEditMode]);
 
@@ -63,7 +60,14 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
       if (locations.length > 0 && webViewRef.current) {
         const script = locations.map((loc: LocationType) => `
           L.marker([${loc.coordinates.latitude}, ${loc.coordinates.longitude}])
-            .bindPopup("${loc.name}")
+            .bindPopup(\`
+              <div class="popup-content">
+                <div class="popup-address">${loc.name}</div>
+                <div class="save-button" onclick="handleEditClick(${JSON.stringify(loc).replace(/'/g, "\\'")})">
+                  Edit Location
+                </div>
+              </div>
+            \`)
             .addTo(window.map);
         `).join('');
         webViewRef.current.injectJavaScript(script + 'true;');
@@ -163,6 +167,14 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
         case 'saveLocation':
           // Now we show the save form only when the save button is clicked
           handleLocationSelected(data);
+          break;
+
+        case 'editLocation':
+          setCurrentLocation(data.location);
+          setShowSavePopup(true);
+          setIsEditMode(true);
+          // Center the map on this location
+          centerMapOnLocation(data.location.coordinates.latitude, data.location.coordinates.longitude);
           break;
       }
     } catch (error) {
@@ -327,9 +339,18 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
           onClose={() => {
             setShowSavePopup(false);
             setIsEditMode(false);
-            if (isEditMode) {
+            
+            // Center map on last edited location if available
+            if (lastEditedCoords) {
+              centerMapOnLocation(lastEditedCoords.lat, lastEditedCoords.lng);
+            }
+            
+            if (navigation.canGoBack()) {
               navigation.goBack();
             }
+            
+            // Clear edited coords after 1 second
+            setTimeout(() => setLastEditedCoords(null), 1000);
           }}
           isEditMode={isEditMode}
         />

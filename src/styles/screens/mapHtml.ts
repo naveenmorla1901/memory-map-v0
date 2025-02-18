@@ -154,6 +154,13 @@ export const mapHtml = `
         window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'mapReady'
         }));
+
+        window.handleEditClick = function(location) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'editMarkerClicked',
+                location: location
+            }));
+        };
     </script>
 </body>
 </html>
