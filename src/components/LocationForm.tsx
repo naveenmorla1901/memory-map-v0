@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
   ScrollView,
   Platform,
   Dimensions,
+  ActivityIndicator,
+  Keyboard,
+  Alert,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LocationType } from '../types/location';
@@ -28,6 +32,8 @@ const LocationForm: React.FC<LocationFormProps> = ({
   isEditMode = false,
 }) => {
   const insets = useSafeAreaInsets();
+  const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: initialData.name || '',
     description: initialData.description || '',
@@ -37,36 +43,103 @@ const LocationForm: React.FC<LocationFormProps> = ({
     isFavorite: initialData.isFavorite || false,
     notifyRadius: initialData.notifyRadius?.toString() || '1.0',
     notifyEnabled: initialData.notifyEnabled || false,
-    customName: '',
-    customDescription: '',
-    customCategory: '',
   });
 
-  const handleSave = () => {
-    onSave({
-      ...initialData as LocationType,
-      name: formData.customName || formData.name,
-      description: formData.customDescription || formData.description,
-      category: formData.customCategory || formData.category,
-      isFavorite: formData.isFavorite,
-      notifyEnabled: formData.notifyEnabled,
-      notifyRadius: parseFloat(formData.notifyRadius),
-      notes: formData.notes,
-      updatedAt: new Date().toISOString(),
-      savedAt: initialData.savedAt || new Date().toISOString(),
-    });
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.75)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Animate in when component mounts
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Validation
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Location name is required';
+    }
+
+    const radius = parseFloat(formData.notifyRadius);
+    if (isNaN(radius) || radius <= 0) {
+      newErrors.notifyRadius = 'Please enter a valid radius';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async () => {
+    Keyboard.dismiss();
+
+    if (!validateForm()) {
+      Alert.alert('Validation Error', 'Please fix the errors before saving.');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      await onSave({
+        ...initialData as LocationType,
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        isFavorite: formData.isFavorite,
+        notifyEnabled: formData.notifyEnabled,
+        notifyRadius: parseFloat(formData.notifyRadius),
+        notes: formData.notes,
+        updatedAt: new Date().toISOString(),
+        savedAt: initialData.savedAt || new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Error saving location:', error);
+      Alert.alert('Error', 'Failed to save location. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    Keyboard.dismiss();
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_HEIGHT * 0.75,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => onClose());
   };
 
   return (
-    <View style={[styles.overlay, { paddingBottom: insets.bottom }]}>
-      <View style={styles.container}>
-        <TouchableOpacity 
-          style={styles.closeButton} 
-          onPress={onClose}
+    <Animated.View style={[styles.overlay, { paddingBottom: insets.bottom, opacity: fadeAnim }]}>
+      <Animated.View style={[styles.container, { transform: [{ translateY: slideAnim }] }]}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={handleClose}
           hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+          disabled={isSaving}
         >
           <View style={styles.closeButtonContainer}>
-            <Ionicons name="close-circle" size={32} color="#666" />
+            <Ionicons name="close-circle" size={32} color={isSaving ? "#ccc" : "#666"} />
           </View>
         </TouchableOpacity>
 
@@ -80,13 +153,21 @@ const LocationForm: React.FC<LocationFormProps> = ({
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Location Name</Text>
+            <Text style={styles.label}>
+              Location Name <Text style={styles.required}>*</Text>
+            </Text>
             <TextInput
-              style={styles.input}
-              value={formData.customName || formData.name}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, customName: text }))}
+              style={[styles.input, errors.name && styles.inputError]}
+              value={formData.name}
+              onChangeText={(text) => {
+                setFormData(prev => ({ ...prev, name: text }));
+                if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+              }}
               placeholder="Enter location name"
+              placeholderTextColor="#999"
+              editable={!isSaving}
             />
+            {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
           </View>
 
           <View style={styles.formGroup}>
@@ -98,11 +179,14 @@ const LocationForm: React.FC<LocationFormProps> = ({
             <Text style={styles.label}>Description</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
-              value={formData.customDescription || formData.description}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, customDescription: text }))}
+              value={formData.description}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, description: text }))}
               placeholder="Enter description"
+              placeholderTextColor="#999"
               multiline
               numberOfLines={3}
+              textAlignVertical="top"
+              editable={!isSaving}
             />
           </View>
 
@@ -110,9 +194,11 @@ const LocationForm: React.FC<LocationFormProps> = ({
             <Text style={styles.label}>Category</Text>
             <TextInput
               style={styles.input}
-              value={formData.customCategory || formData.category}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, customCategory: text }))}
-              placeholder="Enter category"
+              value={formData.category}
+              onChangeText={(text) => setFormData(prev => ({ ...prev, category: text }))}
+              placeholder="e.g., Home, Work, Restaurant"
+              placeholderTextColor="#999"
+              editable={!isSaving}
             />
           </View>
 
@@ -123,20 +209,31 @@ const LocationForm: React.FC<LocationFormProps> = ({
               value={formData.notes}
               onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
               placeholder="Add notes"
+              placeholderTextColor="#999"
               multiline
               numberOfLines={3}
+              textAlignVertical="top"
+              editable={!isSaving}
             />
           </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Notification Radius (km)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.notifyRadius && styles.inputError]}
               value={formData.notifyRadius}
-              onChangeText={(text) => setFormData(prev => ({ ...prev, notifyRadius: text }))}
-              keyboardType="numeric"
-              placeholder="Enter radius in kilometers"
+              onChangeText={(text) => {
+                // Allow only numbers and decimal point
+                const cleaned = text.replace(/[^0-9.]/g, '');
+                setFormData(prev => ({ ...prev, notifyRadius: cleaned }));
+                if (errors.notifyRadius) setErrors(prev => ({ ...prev, notifyRadius: '' }));
+              }}
+              keyboardType="decimal-pad"
+              placeholder="e.g., 1.0"
+              placeholderTextColor="#999"
+              editable={!isSaving}
             />
+            {errors.notifyRadius && <Text style={styles.errorText}>{errors.notifyRadius}</Text>}
           </View>
 
           <View style={styles.switchContainer}>
@@ -146,6 +243,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
               onValueChange={(value) => setFormData(prev => ({ ...prev, notifyEnabled: value }))}
               trackColor={{ false: "#767577", true: "#FF4B55" }}
               thumbColor={formData.notifyEnabled ? "#f4f3f4" : "#f4f3f4"}
+              disabled={isSaving}
             />
           </View>
 
@@ -156,17 +254,27 @@ const LocationForm: React.FC<LocationFormProps> = ({
               onValueChange={(value) => setFormData(prev => ({ ...prev, isFavorite: value }))}
               trackColor={{ false: "#767577", true: "#FF4B55" }}
               thumbColor={formData.isFavorite ? "#f4f3f4" : "#f4f3f4"}
+              disabled={isSaving}
             />
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>
-              {isEditMode ? 'Update Location' : 'Save Location'}
-            </Text>
+          <TouchableOpacity
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+            onPress={handleSave}
+            disabled={isSaving}
+            activeOpacity={0.7}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.saveButtonText}>
+                {isEditMode ? 'Update Location' : 'Save Location'}
+              </Text>
+            )}
           </TouchableOpacity>
         </ScrollView>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 };
 
@@ -255,6 +363,10 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
+  required: {
+    color: '#FF4B55',
+    fontSize: 16,
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -262,6 +374,15 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: '#fff',
+  },
+  inputError: {
+    borderColor: '#FF4B55',
+    borderWidth: 1.5,
+  },
+  errorText: {
+    color: '#FF4B55',
+    fontSize: 12,
+    marginTop: 4,
   },
   textArea: {
     height: 80,
@@ -293,8 +414,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 8,
     marginBottom: 20,
+    minHeight: 52,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#FFB3B6',
+    opacity: 0.7,
   },
   saveButtonText: {
     color: 'white',

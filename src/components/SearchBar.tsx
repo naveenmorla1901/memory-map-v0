@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -7,6 +7,9 @@ import {
   FlatList,
   Text,
   Platform,
+  TouchableWithoutFeedback,
+  ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,76 +37,152 @@ const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [searchText, setSearchText] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const insets = useSafeAreaInsets();
+  const debounceTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Debounced search handler
   const handleChangeText = (text: string) => {
     setSearchText(text);
-    onSearch(text);
     setShowSuggestions(true);
+
+    // Clear previous timer
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+
+    // Don't search for empty text
+    if (!text.trim()) {
+      setIsSearching(false);
+      onSearch('');
+      return;
+    }
+
+    // Show loading state
+    setIsSearching(true);
+
+    // Debounce search by 500ms
+    debounceTimer.current = setTimeout(() => {
+      onSearch(text);
+      setIsSearching(false);
+    }, 500);
   };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
 
   const handleSelectSuggestion = (suggestion: SearchSuggestion) => {
     setSearchText(suggestion.name);
     setShowSuggestions(false);
+    setIsSearching(false);
+    Keyboard.dismiss();
     onSelectLocation?.(suggestion);
   };
 
   const handleClear = () => {
     setSearchText('');
     setShowSuggestions(false);
+    setIsSearching(false);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
     onSearch('');
   };
 
+  const handleOutsidePress = () => {
+    setShowSuggestions(false);
+    Keyboard.dismiss();
+  };
+
   return (
-    <View style={[styles.container, { marginTop: insets.top + (Platform.OS === 'ios' ? 8 : 16) }]}>
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-        <TextInput
-          style={styles.input}
-          value={searchText}
-          onChangeText={handleChangeText}
-          placeholder={placeholder}
-          placeholderTextColor="#999"
-          returnKeyType="search"
-          autoCapitalize="none"
-          autoCorrect={false}
-          onFocus={() => setShowSuggestions(!!searchText)}
-        />
-        {searchText.length > 0 && (
-          <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="#666" />
-          </TouchableOpacity>
+    <>
+      {/* Backdrop to close suggestions when tapping outside */}
+      {showSuggestions && (suggestions.length > 0 || isSearching) && (
+        <TouchableWithoutFeedback onPress={handleOutsidePress}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+      )}
+
+      <View style={[styles.container, { marginTop: insets.top + (Platform.OS === 'ios' ? 8 : 16) }]}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.input}
+            value={searchText}
+            onChangeText={handleChangeText}
+            placeholder={placeholder}
+            placeholderTextColor="#999"
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            onFocus={() => setShowSuggestions(!!searchText)}
+            onSubmitEditing={Keyboard.dismiss}
+          />
+          {isSearching && (
+            <ActivityIndicator size="small" color="#FF4B55" style={styles.loadingIndicator} />
+          )}
+          {searchText.length > 0 && !isSearching && (
+            <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {showSuggestions && !isSearching && suggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            <FlatList
+              data={suggestions}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.suggestionItem}
+                  onPress={() => handleSelectSuggestion(item)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.suggestionContent}>
+                    <Ionicons name="location-outline" size={20} color="#666" style={styles.locationIcon} />
+                    <View style={styles.suggestionText}>
+                      <Text style={styles.suggestionTitle} numberOfLines={1}>{item.name}</Text>
+                      <Text style={styles.suggestionAddress} numberOfLines={2}>{item.address}</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+              style={styles.suggestionsList}
+            />
+          </View>
+        )}
+
+        {showSuggestions && !isSearching && searchText.length > 0 && suggestions.length === 0 && (
+          <View style={styles.suggestionsContainer}>
+            <View style={styles.noResultsContainer}>
+              <Ionicons name="search-outline" size={32} color="#999" />
+              <Text style={styles.noResultsText}>No locations found</Text>
+            </View>
+          </View>
         )}
       </View>
-
-      {showSuggestions && suggestions.length > 0 && (
-        <View style={styles.suggestionsContainer}>
-          <FlatList
-            data={suggestions}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.suggestionItem}
-                onPress={() => handleSelectSuggestion(item)}
-              >
-                <View style={styles.suggestionContent}>
-                  <Ionicons name="location-outline" size={20} color="#666" style={styles.locationIcon} />
-                  <View style={styles.suggestionText}>
-                    <Text style={styles.suggestionTitle} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.suggestionAddress} numberOfLines={1}>{item.address}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            )}
-            style={styles.suggestionsList}
-          />
-        </View>
-      )}
-    </View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 998,
+  },
   container: {
     width: '100%',
     zIndex: 999,
@@ -136,6 +215,9 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: 4,
+    marginLeft: 8,
+  },
+  loadingIndicator: {
     marginLeft: 8,
   },
   suggestionsContainer: {
@@ -183,6 +265,16 @@ const styles = StyleSheet.create({
   suggestionAddress: {
     fontSize: 14,
     color: '#666',
+  },
+  noResultsContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  noResultsText: {
+    marginTop: 8,
+    fontSize: 16,
+    color: '#999',
   },
 });
 

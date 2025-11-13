@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,15 +42,33 @@ const SavedLocationsScreen = ({ navigation }) => {
     setRefreshing(false);
   }, []);
 
-  const handleDeleteLocation = async (locationId: string) => {
-    try {
-      await LocationService.deleteLocation(locationId);
-      setLocations(prevLocations => 
-        prevLocations.filter(location => location.id !== locationId)
-      );
-    } catch (error) {
-      console.error('Error deleting location:', error);
-    }
+  const handleDeleteLocation = async (locationId: string, locationName: string) => {
+    Alert.alert(
+      'Delete Location',
+      `Are you sure you want to delete "${locationName}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await LocationService.deleteLocation(locationId);
+              setLocations(prevLocations =>
+                prevLocations.filter(location => location.id !== locationId)
+              );
+            } catch (error) {
+              console.error('Error deleting location:', error);
+              Alert.alert('Error', 'Failed to delete location. Please try again.');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
   const handleEditLocation = (location: LocationType) => {
@@ -103,9 +122,9 @@ const SavedLocationsScreen = ({ navigation }) => {
           <Ionicons name="pencil" size={20} color={colors.primary} />
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={savedLocationsStyles.deleteButton}
-          onPress={() => handleDeleteLocation(item.id)}
+          onPress={() => handleDeleteLocation(item.id, item.name)}
         >
           <Ionicons name="trash-outline" size={20} color={colors.error} />
         </TouchableOpacity>

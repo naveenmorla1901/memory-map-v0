@@ -82,13 +82,17 @@ export const mapHtml = `
 
         // Add OpenStreetMap tiles
         window.tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
         }).addTo(window.map);
-        
-        // Variables to store markers
-        var userMarker = null;
-        var searchMarker = null;
-        var popup = null;
+
+        // Initialize marker storage
+        window.userMarker = null;
+        window.searchMarker = null;
+        window.searchLayer = null;
+        window.editMarker = null;
+        window.viewMarker = null;
+        window.savedMarkers = [];
         
         // Handle map clicks
         map.on('click', async function(e) {
@@ -157,7 +161,7 @@ export const mapHtml = `
 
         window.handleEditClick = function(location) {
             window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'editMarkerClicked',
+                type: 'editLocation',
                 location: location
             }));
         };
