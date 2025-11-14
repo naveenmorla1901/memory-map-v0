@@ -55,12 +55,14 @@ export const useLocationPermission = () => {
         return;
       }
 
-      // Get current location
+      // Get current location with timeout
       const location = await Location.getCurrentPositionAsync({
         accuracy: Platform.select({
           ios: Location.Accuracy.BestForNavigation,
           android: Location.Accuracy.High
-        })
+        }),
+        timeoutMs: 15000, // 15 second timeout
+        maximumAge: 10000 // Accept cached location up to 10 seconds old
       });
 
       setState({
@@ -74,11 +76,17 @@ export const useLocationPermission = () => {
 
     } catch (error) {
       console.error('Location Error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Error getting location';
       setState({
         location: null,
-        error: 'Error getting location',
+        error: errorMessage,
         loading: false
       });
+      Alert.alert(
+        'Location Error',
+        'Could not retrieve your location. Please make sure location services are enabled and try again.',
+        [{ text: 'OK' }]
+      );
     }
   }, []);
 

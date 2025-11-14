@@ -1,24 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   Switch,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { profileStyles } from '../../styles/screens/ProfileScreen.styles';
 import { colors } from '../../styles/theme/colors';
+import { authService } from '../../services/AuthService';
 
 const ProfileScreen = ({ navigation }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(true);
+  const [userName, setUserName] = useState('Guest User');
+  const [userEmail, setUserEmail] = useState('No email available');
 
-  const handleSignOut = () => {
-    // Add sign out logic here
+  useEffect(() => {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
+      // Use displayName if available, otherwise use email username
+      const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
+      setUserName(name);
+      setUserEmail(currentUser.email || 'No email available');
+    }
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await authService.logout();
+      Alert.alert('Success', 'Signed out successfully');
+      // Navigation to login screen will be handled by auth state listener
+    } catch (error) {
+      console.error('Sign out error:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
+    }
   };
 
   const renderMenuItem = (
@@ -56,8 +77,8 @@ const ProfileScreen = ({ navigation }) => {
             color={colors.primary}
           />
         </View>
-        <Text style={profileStyles.nameText}>John Doe</Text>
-        <Text style={profileStyles.emailText}>john.doe@example.com</Text>
+        <Text style={profileStyles.nameText}>{userName}</Text>
+        <Text style={profileStyles.emailText}>{userEmail}</Text>
       </View>
 
       <ScrollView style={profileStyles.content}>

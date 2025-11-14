@@ -121,6 +121,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
             returnKeyType="search"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={true}
+            selectTextOnFocus={false}
             onFocus={() => setShowSuggestions(!!searchText)}
             onSubmitEditing={Keyboard.dismiss}
           />

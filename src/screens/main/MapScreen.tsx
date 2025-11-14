@@ -341,8 +341,8 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.searchContainer}>
-        <SearchBar 
+      <View style={styles.searchContainer} pointerEvents="box-none">
+        <SearchBar
           onSearch={handleSearch}
           onSelectLocation={handleSelectLocation}
           suggestions={searchSuggestions}
