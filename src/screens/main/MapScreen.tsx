@@ -254,10 +254,22 @@ const MapScreen = ({ navigation, route }: { navigation: any; route: any }) => {
 
   const handleLocateMe = async () => {
     try {
-      await requestAndGetLocation();
+      // Reset states to allow proper centering
+      setIsEditMode(false);
+      setLastEditedCoords(null);
+
+      // Request location and get the result
+      const location = await requestAndGetLocation();
+
+      // If we got a location, center the map on it
+      if (location && isMapReady) {
+        centerMapOnLocation(location.latitude, location.longitude);
+      } else if (!location) {
+        Alert.alert('Error', 'Could not get your location. Please make sure location services are enabled.');
+      }
     } catch (error) {
       console.error('Error getting location:', error);
-      Alert.alert('Error', 'Could not get your location');
+      Alert.alert('Error', 'Could not get your location. Please make sure location services are enabled.');
     }
   };
 

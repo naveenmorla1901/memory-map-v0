@@ -21,10 +21,10 @@ export const useLocationPermission = () => {
   const requestAndGetLocation = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, loading: true }));
-      
+
       // Request permission
       const { status: foregroundStatus } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (foregroundStatus !== 'granted') {
         setState({
           location: null,
@@ -36,7 +36,7 @@ export const useLocationPermission = () => {
           'This app needs access to your location to show nearby places. Please enable location services in your settings.',
           [{ text: 'OK' }]
         );
-        return;
+        return null;
       }
 
       // Check if location services are enabled
@@ -52,7 +52,7 @@ export const useLocationPermission = () => {
           'Please enable location services in your device settings.',
           [{ text: 'OK' }]
         );
-        return;
+        return null;
       }
 
       // Get current location with timeout
@@ -65,14 +65,18 @@ export const useLocationPermission = () => {
         maximumAge: 10000 // Accept cached location up to 10 seconds old
       });
 
+      const userLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude
+      };
+
       setState({
-        location: {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude
-        },
+        location: userLocation,
         error: null,
         loading: false
       });
+
+      return userLocation;
 
     } catch (error) {
       console.error('Location Error:', error);
@@ -87,6 +91,7 @@ export const useLocationPermission = () => {
         'Could not retrieve your location. Please make sure location services are enabled and try again.',
         [{ text: 'OK' }]
       );
+      return null;
     }
   }, []);
 
@@ -125,8 +130,9 @@ export const useLocationPermission = () => {
   }, [state.error, state.location]);
 
   useEffect(() => {
+    // Request location only once on mount
     requestAndGetLocation();
-  }, [requestAndGetLocation]);
+  }, []); // Empty dependency array to run only once
 
   return {
     ...state,
