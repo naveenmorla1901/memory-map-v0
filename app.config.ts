@@ -7,14 +7,6 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
-  splash: {
-    image: './assets/splash.png',
-    resizeMode: 'contain',
-    backgroundColor: '#ffffff'
-  },
-  updates: {
-    fallbackToCacheTimeout: 0
-  },
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
@@ -41,6 +33,15 @@ const config: ExpoConfig = {
     favicon: './assets/favicon.png'
   },
   plugins: [
+    'expo-font',
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/splash.png',
+        resizeMode: 'contain',
+        backgroundColor: '#ffffff'
+      }
+    ],
     [
       'expo-location',
       {

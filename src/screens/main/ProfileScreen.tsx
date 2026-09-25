@@ -45,7 +45,7 @@ const ProfileScreen = ({ navigation }: { navigation: any }) => {
     icon: React.ComponentProps<typeof Ionicons>['name'],
     text: string,
     onPress?: () => void,
-    value?: string | JSX.Element
+    value?: string | React.JSX.Element
   ) => (
     <TouchableOpacity 
       style={profileStyles.menuItem}
