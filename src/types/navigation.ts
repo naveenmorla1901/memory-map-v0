@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Main: undefined;
   Login: undefined;
   Register: undefined;
+  ShareReview: { url: string };
 };
 
 export type BottomTabParamList = {

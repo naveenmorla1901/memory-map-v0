@@ -7,6 +7,9 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
+  // Used by the iOS Share Extension's openHostApp() to deep-link back into
+  // the main app (see src/navigation/AppNavigator.tsx's linking config).
+  scheme: 'memorymap',
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
@@ -55,6 +58,31 @@ const config: ExpoConfig = {
         android: {
           usesCleartextTraffic: true
         }
+      }
+    ],
+    [
+      // Android "share to Memory Map" target: receives a shared Instagram
+      // reel link (or any text/URL) and foregrounds the app. iOS is
+      // handled separately by expo-share-extension below, which gives a
+      // real in-place overlay instead of a full app switch.
+      'expo-share-intent',
+      {
+        androidIntentFilters: ['text/*'],
+        disableIOS: true
+      }
+    ],
+    [
+      // iOS share-sheet overlay (its own mini UI, see index.share.js /
+      // src/share-extension) that stays on top of the host app (e.g.
+      // Instagram) instead of switching away from it.
+      'expo-share-extension',
+      {
+        activationRules: [
+          { type: 'url', max: 1 },
+          { type: 'text' }
+        ],
+        backgroundColor: { red: 0, green: 0, blue: 0, alpha: 0.4 },
+        height: 260
       }
     ]
   ],
