@@ -16,7 +16,7 @@ import { formatDistance } from '../../utils/locationUtils';
 import { savedLocationsStyles } from '../../styles/screens/SavedLocationsScreen.styles';
 import { colors } from '../../styles/theme/colors';
 
-const SavedLocationsScreen = ({ navigation }) => {
+const SavedLocationsScreen = ({ navigation }: { navigation: any }) => {
   const [locations, setLocations] = useState<LocationType[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);

@@ -18,6 +18,7 @@ export const commonStyles = StyleSheet.create({
     android: {
       elevation: 5,
     },
+    default: {},
   }),
   card: {
     backgroundColor: colors.white,

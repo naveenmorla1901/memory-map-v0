@@ -55,14 +55,12 @@ export const useLocationPermission = () => {
         return null;
       }
 
-      // Get current location with timeout
+      // Get current location
       const location = await Location.getCurrentPositionAsync({
         accuracy: Platform.select({
           ios: Location.Accuracy.BestForNavigation,
           android: Location.Accuracy.High
         }),
-        timeoutMs: 15000, // 15 second timeout
-        maximumAge: 10000 // Accept cached location up to 10 seconds old
       });
 
       const userLocation = {

@@ -13,7 +13,7 @@ import { profileStyles } from '../../styles/screens/ProfileScreen.styles';
 import { colors } from '../../styles/theme/colors';
 import { authService } from '../../services/AuthService';
 
-const ProfileScreen = ({ navigation }) => {
+const ProfileScreen = ({ navigation }: { navigation: any }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [locationTrackingEnabled, setLocationTrackingEnabled] = useState(true);
@@ -24,9 +24,8 @@ const ProfileScreen = ({ navigation }) => {
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
-      // Use displayName if available, otherwise use email username
-      const name = currentUser.displayName || currentUser.email?.split('@')[0] || 'User';
-      setUserName(name);
+      const fullName = [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ');
+      setUserName(fullName || currentUser.username);
       setUserEmail(currentUser.email || 'No email available');
     }
   }, []);
@@ -34,8 +33,8 @@ const ProfileScreen = ({ navigation }) => {
   const handleSignOut = async () => {
     try {
       await authService.logout();
-      Alert.alert('Success', 'Signed out successfully');
-      // Navigation to login screen will be handled by auth state listener
+      // Navigation to the login screen is handled by AppNavigator, which
+      // listens for auth state changes.
     } catch (error) {
       console.error('Sign out error:', error);
       Alert.alert('Error', 'Failed to sign out. Please try again.');
@@ -43,7 +42,7 @@ const ProfileScreen = ({ navigation }) => {
   };
 
   const renderMenuItem = (
-    icon: string,
+    icon: React.ComponentProps<typeof Ionicons>['name'],
     text: string,
     onPress?: () => void,
     value?: string | JSX.Element

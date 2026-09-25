@@ -157,7 +157,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
               Location Name <Text style={styles.required}>*</Text>
             </Text>
             <TextInput
-              style={[styles.input, errors.name && styles.inputError]}
+              style={[styles.input, errors.name ? styles.inputError : undefined]}
               value={formData.name}
               onChangeText={(text) => {
                 setFormData(prev => ({ ...prev, name: text }));
@@ -220,7 +220,7 @@ const LocationForm: React.FC<LocationFormProps> = ({
           <View style={styles.formGroup}>
             <Text style={styles.label}>Notification Radius (km)</Text>
             <TextInput
-              style={[styles.input, errors.notifyRadius && styles.inputError]}
+              style={[styles.input, errors.notifyRadius ? styles.inputError : undefined]}
               value={formData.notifyRadius}
               onChangeText={(text) => {
                 // Allow only numbers and decimal point

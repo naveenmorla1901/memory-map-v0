@@ -40,6 +40,7 @@ export default function AddLocationScreen({ navigation, route }: { navigation: a
 
     try {
       const newLocation = {
+        id: '',
         name: locationName,
         address,
         description,
@@ -49,6 +50,7 @@ export default function AddLocationScreen({ navigation, route }: { navigation: a
         isFavorite,
         notifyEnabled: enableNotifications,
         notifyRadius: parseFloat(notificationRadius),
+        notes: '',
         savedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

@@ -13,6 +13,11 @@ export const typography = {
       medium: 'Roboto',
       bold: 'Roboto',
     },
+    default: {
+      regular: 'System',
+      medium: 'System',
+      bold: 'System',
+    },
   }),
   // Font sizes
   sizes: {
@@ -33,7 +38,7 @@ export const typography = {
     semibold: '600',
     bold: '700',
     heavy: '800',
-  },
+  } as const,
   // Line heights
   lineHeights: {
     xs: 16,

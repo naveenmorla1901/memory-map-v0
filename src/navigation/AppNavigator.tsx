@@ -14,20 +14,24 @@ const AppNavigator = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    handleAutoLogin();
-  }, []);
+    let isMounted = true;
 
-  const handleAutoLogin = async () => {
-    try {
-      await authService.login();
-      setIsAuthenticated(true);
-    } catch (error) {
-      console.error('Auto-login failed:', error);
-      setIsAuthenticated(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    authService.bootstrap().then((user) => {
+      if (isMounted) {
+        setIsAuthenticated(!!user);
+        setIsLoading(false);
+      }
+    });
+
+    const unsubscribe = authService.subscribe((user) => {
+      setIsAuthenticated(!!user);
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, []);
 
   if (isLoading) {
     return (

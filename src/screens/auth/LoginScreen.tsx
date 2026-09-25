@@ -1,126 +1,105 @@
-// This is a temporary testing version - original login code will be restored after testing
-import React from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
-import { authService } from '../../services/AuthService';
-
-const LoginScreen = () => {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <ActivityIndicator size="large" color="#FF4B55" />
-      <Text style={{ marginTop: 20 }}>Logging in automatically...</Text>
-    </View>
-  );
-};
-
-export default LoginScreen;
-
-/* Original Login Screen Code - Keep for later
 import React, { useState } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
+import { AuthStyles } from './AuthStyles';
 import { authService } from '../../services/AuthService';
+import { loginSchema } from '../../utils/validation';
+import { ApiError } from '../../config/api';
 
-const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+const LoginScreen = ({ navigation }: { navigation: any }) => {
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    setError('');
+
+    const result = loginSchema.safeParse({ identifier, password });
+    if (!result.success) {
+      setError(result.error.issues[0].message);
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      await authService.login(email, password);
-    } catch (error) {
-      Alert.alert('Error', error.message);
+      await authService.login(identifier.trim(), password);
+      // Navigation to the main app is handled by AppNavigator, which listens
+      // for auth state changes.
+    } catch (err) {
+      const message = err instanceof ApiError
+        ? err.message
+        : 'Could not sign in. Please check your connection and try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Logging in...' : 'Login'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity 
-        onPress={() => navigation.navigate('Register')}
-      >
-        <Text style={styles.linkText}>
-          Don't have an account? Register
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={AuthStyles.container} keyboardShouldPersistTaps="handled">
+        <Text style={AuthStyles.title}>Memory Map</Text>
+        <Text style={AuthStyles.subtitle}>Sign in to see your saved places</Text>
+
+        <View style={AuthStyles.form}>
+          {!!error && <Text style={AuthStyles.errorText}>{error}</Text>}
+
+          <Text style={AuthStyles.label}>Username or Email</Text>
+          <TextInput
+            style={AuthStyles.input}
+            value={identifier}
+            onChangeText={setIdentifier}
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+            editable={!loading}
+          />
+
+          <Text style={AuthStyles.label}>Password</Text>
+          <TextInput
+            style={AuthStyles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Password"
+            secureTextEntry
+            editable={!loading}
+          />
+
+          <TouchableOpacity
+            style={AuthStyles.button}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={AuthStyles.buttonText}>Log In</Text>
+            )}
+          </TouchableOpacity>
+
+          <View style={AuthStyles.footer}>
+            <Text style={AuthStyles.footerText}>Don't have an account?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')} disabled={loading}>
+              <Text style={AuthStyles.signUp}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#fff'
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center'
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 15,
-    marginBottom: 15,
-    borderRadius: 5
-  },
-  button: {
-    backgroundColor: '#FF4B55',
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 15
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: 'bold'
-  },
-  linkText: {
-    color: '#FF4B55',
-    textAlign: 'center'
-  }
-});
-
 export default LoginScreen;
-*/
