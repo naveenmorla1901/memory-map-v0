@@ -1,6 +1,6 @@
 import { AppRegistry } from 'react-native';
 
-import ShareExtensionRoot from './src/share-extension/ShareExtensionRoot';
+import ShareExtensionRoot from './src/share/ShareExtensionRoot';
 
-// IMPORTANT: the first argument to registerComponent must be "shareExtension"
+// iOS Share Extension entry point. The name must be "shareExtension".
 AppRegistry.registerComponent('shareExtension', () => ShareExtensionRoot);

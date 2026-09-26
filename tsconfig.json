@@ -5,12 +5,19 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["jest"]
+    "types": [
+      "jest"
+    ]
   },
   "exclude": [
     "node_modules",
+    "android",
+    "ios",
     "babel.config.js",
     "metro.config.js",
-    "jest.config.js"
+    "jest.config.js",
+    "jest.setup.js",
+    "plugins",
+    "scripts"
   ]
 }

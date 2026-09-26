@@ -6,37 +6,50 @@
     "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "web": "expo start --web",
-    "test": "jest"
+    "test": "jest",
+    "typecheck": "tsc --noEmit",
+    "icons": "python3 scripts/generate-icons.py"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@maplibre/maplibre-react-native": "^11.4.0",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/netinfo": "12.0.1",
     "@react-navigation/bottom-tabs": "^7.19.2",
     "@react-navigation/native": "^7.4.1",
     "@react-navigation/native-stack": "^7.19.2",
     "expo": "^57.0.25",
+    "expo-application": "~57.0.3",
+    "expo-asset": "~57.0.18",
     "expo-build-properties": "~57.0.22",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.19",
+    "expo-device": "~57.0.2",
     "expo-font": "~57.0.4",
+    "expo-haptics": "~57.0.3",
+    "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.11",
     "expo-location": "~57.0.20",
+    "expo-notifications": "~57.0.21",
+    "expo-secure-store": "~57.0.4",
     "expo-share-extension": "^5.0.6",
-    "expo-share-intent": "^8.0.1",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
+    "expo-task-manager": "~57.0.20",
+    "expo-web-browser": "~57.0.3",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
-    "react-native-maps": "1.27.2",
+    "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
-    "react-native-webview": "13.16.1",
-    "zod": "^3.24.2"
+    "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
+    "@expo/plist": "^0.8.1",
+    "@types/geojson": "^7946.0.16",
     "@types/jest": "^29.5.11",
     "@types/react": "~19.2.0",
     "babel-preset-expo": "~57.0.0",
@@ -45,7 +58,24 @@
     "typescript": "~6.0.3"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/android/",
+      "/ios/"
+    ]
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "expo-share-extension"
+        ]
+      }
+    }
+  }
 }
