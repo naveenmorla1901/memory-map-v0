@@ -46,13 +46,15 @@ export interface ShareFlowProps {
   onSaved?: (places: Place[]) => void;
   /** Extra action on the success screen, e.g. "View on map" or "Open Memory Map". */
   savedAction?: { title: string; onPress: (places: Place[]) => void };
+  /** Close by itself this long after saving (the overlays: drops the user back into Instagram). */
+  autoCloseMs?: number;
 }
 
 /**
  * Reel link -> places found in it -> pick -> save. The same flow runs inside
  * the app, in the iOS share extension and in the Android share overlay.
  */
-export function ShareFlow({ url, near, here, units, onClose, onSaved, savedAction }: ShareFlowProps) {
+export function ShareFlow({ url, near, here, units, onClose, onSaved, savedAction, autoCloseMs }: ShareFlowProps) {
   const [state, dispatch] = useReducer(shareReducer, { kind: 'analyzing' } as ShareState);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -113,7 +115,7 @@ export function ShareFlow({ url, near, here, units, onClose, onSaved, savedActio
           }}
         />
       )}
-      {state.kind === 'saved' && <Saved places={state.places} onDone={onClose} savedAction={savedAction} />}
+      {state.kind === 'saved' && <Saved places={state.places} onDone={onClose} savedAction={savedAction} autoCloseMs={autoCloseMs} />}
     </View>
   );
 }
@@ -243,14 +245,18 @@ function Review({ state, saving, saveError, onToggle, onSearch, onSave, onClose 
             {saveError}
           </Text>
         )}
-        <Button
-          title={count === 0 ? 'Choose a place to save' : `Save ${pluralize(count, 'place')}`}
-          icon={count > 0 ? 'bookmark' : undefined}
-          disabled={count === 0}
-          loading={saving}
-          onPress={onSave}
-          testID="share-save"
-        />
+        <View style={styles.footerRow}>
+          <Button title="Not now" variant="secondary" onPress={onClose} disabled={saving} style={styles.notNow} testID="share-dismiss" />
+          <Button
+            title={count === 0 ? 'Pick a place' : `Save ${pluralize(count, 'place')}`}
+            icon={count > 0 ? 'bookmark' : undefined}
+            disabled={count === 0}
+            loading={saving}
+            onPress={onSave}
+            style={styles.flex}
+            testID="share-save"
+          />
+        </View>
       </View>
     </View>
   );
@@ -376,9 +382,14 @@ function SearchPanel({
 
 // --- Saved -----------------------------------------------------------------
 
-function Saved({ places, onDone, savedAction }: { places: Place[]; onDone: () => void; savedAction?: ShareFlowProps['savedAction'] }) {
+function Saved({ places, onDone, savedAction, autoCloseMs }: { places: Place[]; onDone: () => void; savedAction?: ShareFlowProps['savedAction']; autoCloseMs?: number }) {
   const { colors } = useTheme();
   const ring = useSharedValue(0);
+  useEffect(() => {
+    if (!autoCloseMs) return;
+    const timer = setTimeout(onDone, autoCloseMs);
+    return () => clearTimeout(timer);
+  }, [autoCloseMs, onDone]);
   useEffect(() => {
     ring.value = withDelay(150, withTiming(1, { duration: 900, easing: Easing.out(Easing.cubic) }));
   }, [ring]);
@@ -473,6 +484,8 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     marginTop: spacing.xs,
   },
+  footerRow: { flexDirection: 'row', gap: spacing.sm },
+  notNow: { paddingHorizontal: spacing.lg },
   footer: { paddingHorizontal: spacing.xl, paddingTop: spacing.md, paddingBottom: spacing.lg, gap: spacing.sm, borderTopWidth: StyleSheet.hairlineWidth },
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   searchBox: { paddingHorizontal: spacing.xl, paddingBottom: spacing.sm },

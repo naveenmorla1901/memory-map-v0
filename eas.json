@@ -16,14 +16,14 @@
       "android": { "buildType": "apk" },
       "env": {
         "APP_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.example.com"
+        "EXPO_PUBLIC_API_URL": "https://memory-map-api.onrender.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "APP_ENV": "production",
-        "EXPO_PUBLIC_API_URL": "https://api.example.com",
+        "EXPO_PUBLIC_API_URL": "https://memory-map-api.onrender.com",
         "EXPO_PUBLIC_SUPPORT_EMAIL": "support@example.com"
       }
     }

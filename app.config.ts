@@ -10,6 +10,8 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 const BUNDLE_ID = process.env.APP_BUNDLE_ID || 'com.memorymap.app';
 const IS_PRODUCTION = process.env.APP_ENV === 'production';
 const APP_GROUP = `group.${BUNDLE_ID}`;
+// From `npx eas-cli init` - paste it here (or set EAS_PROJECT_ID).
+const EAS_PROJECT_ID = process.env.EAS_PROJECT_ID || '';
 
 const LOCATION_WHEN_IN_USE = 'Memory Map shows where you are on the map and sorts your saved places by distance.';
 const LOCATION_ALWAYS =
@@ -155,7 +157,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           { type: 'text', max: 1 },
         ],
         backgroundColor: { red: 0, green: 0, blue: 0, alpha: 0 },
-        height: 620,
+        height: 500,
         excludedPackages: [
           'expo-dev-client',
           'expo-splash-screen',
@@ -175,6 +177,22 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 
   extra: {
     iosAppGroup: APP_GROUP,
-    eas: process.env.EAS_PROJECT_ID ? { projectId: process.env.EAS_PROJECT_ID } : undefined,
+    eas: {
+      ...(EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : {}),
+      // Lets EAS create signing credentials for the share extension target too.
+      build: {
+        experimental: {
+          ios: {
+            appExtensions: [
+              {
+                targetName: 'MemoryMapShareExtension',
+                bundleIdentifier: `${BUNDLE_ID}.ShareExtension`,
+                entitlements: { 'com.apple.security.application-groups': [APP_GROUP] },
+              },
+            ],
+          },
+        },
+      },
+    },
   },
 });

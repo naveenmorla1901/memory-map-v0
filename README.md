@@ -7,6 +7,8 @@ Save the places you see in Instagram reels to your own map. Tap **Share** on a r
 React Native (Expo SDK 57, New Architecture) for iOS and Android. It talks to the
 [memory-map](https://github.com/naveenmorla1901/memory-map) Django backend.
 
+> **New here? Start with [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)** - hosting the backend, installing on phones, and testing the Instagram share drawer.
+
 ## Features
 
 - **Share to save** - an iOS share extension and an Android share overlay run *on top of
